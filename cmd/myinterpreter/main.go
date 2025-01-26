@@ -47,13 +47,13 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error reading file: %v\n", err)
 		os.Exit(1)
 	}
-	tokens := tokenize(fileContents)
+	tokens := Tokenize(fileContents)
 	for _, t := range tokens {
 		fmt.Println(t)
 	}
 }
 
-func tokenize(b []byte) []tokenStruct {
+func Tokenize(b []byte) []tokenStruct {
 	tokens := []tokenStruct{}
 
 	for i := 0; i < len(b); i++ {
