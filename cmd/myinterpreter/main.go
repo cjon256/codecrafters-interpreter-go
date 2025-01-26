@@ -5,6 +5,29 @@ import (
 	"os"
 )
 
+type tokenStruct struct {
+	Type      TokenType
+	Str       string
+	NullThing interface{}
+}
+
+func (t tokenStruct) String() string {
+	nullStr := ""
+	if t.NullThing == nil {
+		nullStr = "null"
+	}
+	return fmt.Sprintf("%s %s %s", t.Type, t.Str, nullStr)
+}
+
+//go:generate stringer -type=TokenType
+type TokenType int
+
+const (
+	EOF TokenType = iota
+	LEFT_PAREN
+	RIGHT_PAREN
+)
+
 func main() {
 	if len(os.Args) < 3 {
 		fmt.Fprintln(os.Stderr, "Usage: ./your_program.sh tokenize <filename>")
@@ -24,16 +47,26 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error reading file: %v\n", err)
 		os.Exit(1)
 	}
+	tokens := tokenize(fileContents)
+	for _, t := range tokens {
+		fmt.Println(t)
+	}
+}
 
-	for i := 0; i < len(fileContents); i++ {
-		switch fileContents[i] {
+func tokenize(b []byte) []tokenStruct {
+	tokens := []tokenStruct{}
+
+	for i := 0; i < len(b); i++ {
+		switch b[i] {
 		case '(':
-			fmt.Println("LEFT_PAREN ( null")
+			tokens = append(tokens, tokenStruct{LEFT_PAREN, "(", nil})
 		case ')':
-			fmt.Println("RIGHT_PAREN ) null")
+			tokens = append(tokens, tokenStruct{RIGHT_PAREN, ")", nil})
+
 		default:
-			fmt.Printf("unknown %s null\n", string(fileContents[i]))
+			// ignore any whitespace or other unknown characters
 		}
 	}
-	fmt.Println("EOF  null") // Placeholder, remove this line when implementing the scanner
+	tokens = append(tokens, tokenStruct{EOF, "", nil})
+	return tokens
 }
