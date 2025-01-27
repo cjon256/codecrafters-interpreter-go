@@ -26,6 +26,8 @@ const (
 	EOF TokenType = iota
 	LEFT_PAREN
 	RIGHT_PAREN
+	LEFT_BRACE
+	RIGHT_BRACE
 )
 
 func main() {
@@ -66,6 +68,10 @@ func Tokenize(lines []byte) []tokenStruct {
 			tokens = append(tokens, tokenStruct{LEFT_PAREN, "(", nil})
 		case ')':
 			tokens = append(tokens, tokenStruct{RIGHT_PAREN, ")", nil})
+		case '{':
+			tokens = append(tokens, tokenStruct{LEFT_BRACE, "{", nil})
+		case '}':
+			tokens = append(tokens, tokenStruct{RIGHT_BRACE, "}", nil})
 
 		default:
 			// ignore any whitespace or other unknown characters
