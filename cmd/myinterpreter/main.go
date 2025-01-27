@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 )
@@ -62,8 +63,13 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error reading file: %v\n", err)
 		os.Exit(1)
 	}
-	tokens := Tokenize(lines)
+	tokens, err := Tokenize(lines, 1)
+	tokens = append(tokens, tokenStruct{EOF, "", nil})
 	Parse(tokens)
+	if err != nil {
+		os.Exit(65)
+	}
+	os.Exit(0)
 }
 
 func Parse(tokens []tokenStruct) {
@@ -72,11 +78,13 @@ func Parse(tokens []tokenStruct) {
 	}
 }
 
-func Tokenize(lines []byte) []tokenStruct {
+func Tokenize(line []byte, lineNumber int) ([]tokenStruct, error) {
 	tokens := []tokenStruct{}
+	var err error = nil
 
-	for i := 0; i < len(lines); i++ {
-		switch lines[i] {
+loop:
+	for i := 0; i < len(line); i++ {
+		switch line[i] {
 		case '(':
 			tokens = append(tokens, tokenStruct{LEFT_PAREN, "(", nil})
 		case ')':
@@ -96,42 +104,50 @@ func Tokenize(lines []byte) []tokenStruct {
 		case '*':
 			tokens = append(tokens, tokenStruct{STAR, "*", nil})
 		case '!':
-			if i+1 < len(lines) && lines[i+1] == '=' {
+			if i+1 < len(line) && line[i+1] == '=' {
 				tokens = append(tokens, tokenStruct{BANG_EQUAL, "!=", nil})
 				i++
 			} else {
-				// parse error?
+				err = errors.New("oops")
+				fmt.Fprintf(os.Stderr, "[line %d] Error: Unexpected character: %s\n", lineNumber, string(line[i]))
 			}
 		case '=':
-			if i+1 < len(lines) && lines[i+1] == '=' {
+			if i+1 < len(line) && line[i+1] == '=' {
 				tokens = append(tokens, tokenStruct{EQUAL_EQUAL, "==", nil})
 				i++
 			} else {
-				// parse error?
+				err = errors.New("oops")
+				fmt.Fprintf(os.Stderr, "[line %d] Error: Unexpected character: %s\n", lineNumber, string(line[i]))
 			}
 		case '<':
-			if i+1 < len(lines) && lines[i+1] == '=' {
+			if i+1 < len(line) && line[i+1] == '=' {
 				tokens = append(tokens, tokenStruct{LESS_EQUAL, "<=", nil})
 				i++
 			} else {
 				tokens = append(tokens, tokenStruct{LESS, "<", nil})
 			}
 		case '>':
-			if i+1 < len(lines) && lines[i+1] == '=' {
+			if i+1 < len(line) && line[i+1] == '=' {
 				tokens = append(tokens, tokenStruct{GREATER_EQUAL, ">=", nil})
 				i++
 			} else {
 				tokens = append(tokens, tokenStruct{GREATER, ">", nil})
 			}
 		case '/':
-			tokens = append(tokens, tokenStruct{SLASH, "/", nil})
+			if i+1 < len(line) && line[i+1] == '/' {
+				// handle comments
+				break loop
+			} else {
+				tokens = append(tokens, tokenStruct{SLASH, "/", nil})
+			}
 		case '.':
 			tokens = append(tokens, tokenStruct{DOT, ".", nil})
-
+		case ' ':
+			// ignore
 		default:
-			// ignore any whitespace or other unknown characters
+			err = errors.New("syntax_error")
+			fmt.Fprintf(os.Stderr, "[line %d] Error: Unexpected character: %s\n", lineNumber, string(line[i]))
 		}
 	}
-	tokens = append(tokens, tokenStruct{EOF, "", nil})
-	return tokens
+	return tokens, err
 }
