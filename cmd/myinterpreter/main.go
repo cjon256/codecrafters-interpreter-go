@@ -42,22 +42,26 @@ func main() {
 	}
 
 	filename := os.Args[2]
-	fileContents, err := os.ReadFile(filename)
+	lines, err := os.ReadFile(filename)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error reading file: %v\n", err)
 		os.Exit(1)
 	}
-	tokens := Tokenize(fileContents)
+	tokens := Tokenize(lines)
+	Parse(tokens)
+}
+
+func Parse(tokens []tokenStruct) {
 	for _, t := range tokens {
 		fmt.Println(t)
 	}
 }
 
-func Tokenize(b []byte) []tokenStruct {
+func Tokenize(lines []byte) []tokenStruct {
 	tokens := []tokenStruct{}
 
-	for i := 0; i < len(b); i++ {
-		switch b[i] {
+	for i := 0; i < len(lines); i++ {
+		switch lines[i] {
 		case '(':
 			tokens = append(tokens, tokenStruct{LEFT_PAREN, "(", nil})
 		case ')':
