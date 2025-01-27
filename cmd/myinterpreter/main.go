@@ -28,6 +28,19 @@ const (
 	RIGHT_PAREN
 	LEFT_BRACE
 	RIGHT_BRACE
+	SEMICOLON
+	COMMA
+	PLUS
+	MINUS
+	STAR
+	BANG_EQUAL
+	EQUAL_EQUAL
+	LESS_EQUAL
+	GREATER_EQUAL
+	LESS
+	GREATER
+	SLASH
+	DOT
 )
 
 func main() {
@@ -72,6 +85,48 @@ func Tokenize(lines []byte) []tokenStruct {
 			tokens = append(tokens, tokenStruct{LEFT_BRACE, "{", nil})
 		case '}':
 			tokens = append(tokens, tokenStruct{RIGHT_BRACE, "}", nil})
+		case ';':
+			tokens = append(tokens, tokenStruct{SEMICOLON, ";", nil})
+		case ',':
+			tokens = append(tokens, tokenStruct{COMMA, ",", nil})
+		case '+':
+			tokens = append(tokens, tokenStruct{PLUS, "+", nil})
+		case '-':
+			tokens = append(tokens, tokenStruct{MINUS, "-", nil})
+		case '*':
+			tokens = append(tokens, tokenStruct{STAR, "*", nil})
+		case '!':
+			if i+1 < len(lines) && lines[i+1] == '=' {
+				tokens = append(tokens, tokenStruct{BANG_EQUAL, "!=", nil})
+				i++
+			} else {
+				// parse error?
+			}
+		case '=':
+			if i+1 < len(lines) && lines[i+1] == '=' {
+				tokens = append(tokens, tokenStruct{EQUAL_EQUAL, "==", nil})
+				i++
+			} else {
+				// parse error?
+			}
+		case '<':
+			if i+1 < len(lines) && lines[i+1] == '=' {
+				tokens = append(tokens, tokenStruct{LESS_EQUAL, "<=", nil})
+				i++
+			} else {
+				tokens = append(tokens, tokenStruct{LESS, "<", nil})
+			}
+		case '>':
+			if i+1 < len(lines) && lines[i+1] == '=' {
+				tokens = append(tokens, tokenStruct{GREATER_EQUAL, ">=", nil})
+				i++
+			} else {
+				tokens = append(tokens, tokenStruct{GREATER, ">", nil})
+			}
+		case '/':
+			tokens = append(tokens, tokenStruct{SLASH, "/", nil})
+		case '.':
+			tokens = append(tokens, tokenStruct{DOT, ".", nil})
 
 		default:
 			// ignore any whitespace or other unknown characters
