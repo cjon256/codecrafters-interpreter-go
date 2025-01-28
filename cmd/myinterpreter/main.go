@@ -64,11 +64,12 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error reading file: %v\n", err)
 		os.Exit(1)
 	}
-	errCh := make(chan error)
-	ch := make(chan tokenStruct)
 
-	go Tokenize(ch, errCh, lines, os.Stderr)
-	Parse(ch)
+	errCh := make(chan error)
+	tokenCh := make(chan tokenStruct)
+
+	go Tokenize(tokenCh, errCh, lines)
+	Parse(tokenCh)
 
 	err = <-errCh
 	if err != nil {
@@ -83,7 +84,7 @@ func Parse(tokens chan tokenStruct) {
 	}
 }
 
-func Tokenize(tokens chan tokenStruct, errCh chan error, line []byte, errout *os.File) {
+func Tokenize(tokens chan tokenStruct, errCh chan error, line []byte) {
 	var err error = nil
 	lineNumber := 1
 
@@ -114,7 +115,7 @@ loop:
 				tokens <- tokenStruct{BANG_EQUAL, "!=", nil}
 			} else {
 				err = errors.New("oops")
-				fmt.Fprintf(errout, "[line %d] Error: Unexpected character: %s\n", lineNumber, string(line[i]))
+				fmt.Fprintf(os.Stderr, "[line %d] Error: Unexpected character: %s\n", lineNumber, string(line[i]))
 			}
 		case '=':
 			if i+1 < len(line) && line[i+1] == '=' {
@@ -150,7 +151,7 @@ loop:
 			// ignore
 		default:
 			err = errors.New("syntax_error")
-			fmt.Fprintf(errout, "[line %d] Error: Unexpected character: %s\n", lineNumber, string(line[i]))
+			fmt.Fprintf(os.Stderr, "[line %d] Error: Unexpected character: %s\n", lineNumber, string(line[i]))
 			continue
 		}
 	}
