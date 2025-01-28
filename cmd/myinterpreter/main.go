@@ -33,6 +33,7 @@ const (
 	COMMA
 	PLUS
 	MINUS
+	EQUAL
 	STAR
 	BANG_EQUAL
 	EQUAL_EQUAL
@@ -109,8 +110,8 @@ loop:
 			tokens <- tokenStruct{STAR, "*", nil}
 		case '!':
 			if i+1 < len(line) && line[i+1] == '=' {
-				tokens <- tokenStruct{BANG_EQUAL, "!=", nil}
 				i++
+				tokens <- tokenStruct{BANG_EQUAL, "!=", nil}
 			} else {
 				err = errors.New("oops")
 				fmt.Fprintf(errout, "[line %d] Error: Unexpected character: %s\n", lineNumber, string(line[i]))
@@ -120,8 +121,7 @@ loop:
 				tokens <- tokenStruct{EQUAL_EQUAL, "==", nil}
 				i++
 			} else {
-				err = errors.New("oops")
-				fmt.Fprintf(errout, "[line %d] Error: Unexpected character: %s\n", lineNumber, string(line[i]))
+				tokens <- tokenStruct{EQUAL, "=", nil}
 			}
 		case '<':
 			if i+1 < len(line) && line[i+1] == '=' {
