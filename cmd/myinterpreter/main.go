@@ -148,6 +148,8 @@ loop:
 		case '.':
 			tokens <- tokenStruct{DOT, ".", nil}
 		case ' ':
+		case '\t':
+		case '\n':
 			// ignore
 		default:
 			err = errors.New("syntax_error")
