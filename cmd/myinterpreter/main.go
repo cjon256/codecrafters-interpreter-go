@@ -43,6 +43,7 @@ const (
 	GREATER
 	SLASH
 	DOT
+	BANG
 )
 
 func main() {
@@ -114,8 +115,7 @@ loop:
 				i++
 				tokens <- tokenStruct{BANG_EQUAL, "!=", nil}
 			} else {
-				err = errors.New("oops")
-				fmt.Fprintf(os.Stderr, "[line %d] Error: Unexpected character: %s\n", lineNumber, string(line[i]))
+				tokens <- tokenStruct{BANG, "!", nil}
 			}
 		case '=':
 			if i+1 < len(line) && line[i+1] == '=' {
