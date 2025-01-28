@@ -63,91 +63,99 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error reading file: %v\n", err)
 		os.Exit(1)
 	}
-	tokens, err := Tokenize(lines, 1)
-	tokens = append(tokens, tokenStruct{EOF, "", nil})
-	Parse(tokens)
+	errCh := make(chan error)
+	ch := make(chan tokenStruct)
+
+	go Tokenize(ch, errCh, lines, os.Stderr)
+	Parse(ch)
+
+	err = <-errCh
 	if err != nil {
 		os.Exit(65)
 	}
 	os.Exit(0)
 }
 
-func Parse(tokens []tokenStruct) {
-	for _, t := range tokens {
+func Parse(tokens chan tokenStruct) {
+	for t := range tokens {
 		fmt.Println(t)
 	}
 }
 
-func Tokenize(line []byte, lineNumber int) ([]tokenStruct, error) {
-	tokens := []tokenStruct{}
+func Tokenize(tokens chan tokenStruct, errCh chan error, line []byte, errout *os.File) {
 	var err error = nil
+	lineNumber := 1
 
 loop:
 	for i := 0; i < len(line); i++ {
 		switch line[i] {
 		case '(':
-			tokens = append(tokens, tokenStruct{LEFT_PAREN, "(", nil})
+			tokens <- tokenStruct{LEFT_PAREN, "(", nil}
 		case ')':
-			tokens = append(tokens, tokenStruct{RIGHT_PAREN, ")", nil})
+			tokens <- tokenStruct{RIGHT_PAREN, ")", nil}
 		case '{':
-			tokens = append(tokens, tokenStruct{LEFT_BRACE, "{", nil})
+			tokens <- tokenStruct{LEFT_BRACE, "{", nil}
 		case '}':
-			tokens = append(tokens, tokenStruct{RIGHT_BRACE, "}", nil})
+			tokens <- tokenStruct{RIGHT_BRACE, "}", nil}
 		case ';':
-			tokens = append(tokens, tokenStruct{SEMICOLON, ";", nil})
+			tokens <- tokenStruct{SEMICOLON, ";", nil}
 		case ',':
-			tokens = append(tokens, tokenStruct{COMMA, ",", nil})
+			tokens <- tokenStruct{COMMA, ",", nil}
 		case '+':
-			tokens = append(tokens, tokenStruct{PLUS, "+", nil})
+			tokens <- tokenStruct{PLUS, "+", nil}
 		case '-':
-			tokens = append(tokens, tokenStruct{MINUS, "-", nil})
+			tokens <- tokenStruct{MINUS, "-", nil}
 		case '*':
-			tokens = append(tokens, tokenStruct{STAR, "*", nil})
+			tokens <- tokenStruct{STAR, "*", nil}
 		case '!':
 			if i+1 < len(line) && line[i+1] == '=' {
-				tokens = append(tokens, tokenStruct{BANG_EQUAL, "!=", nil})
+				tokens <- tokenStruct{BANG_EQUAL, "!=", nil}
 				i++
 			} else {
 				err = errors.New("oops")
-				fmt.Fprintf(os.Stderr, "[line %d] Error: Unexpected character: %s\n", lineNumber, string(line[i]))
+				fmt.Fprintf(errout, "[line %d] Error: Unexpected character: %s\n", lineNumber, string(line[i]))
 			}
 		case '=':
 			if i+1 < len(line) && line[i+1] == '=' {
-				tokens = append(tokens, tokenStruct{EQUAL_EQUAL, "==", nil})
+				tokens <- tokenStruct{EQUAL_EQUAL, "==", nil}
 				i++
 			} else {
 				err = errors.New("oops")
-				fmt.Fprintf(os.Stderr, "[line %d] Error: Unexpected character: %s\n", lineNumber, string(line[i]))
+				fmt.Fprintf(errout, "[line %d] Error: Unexpected character: %s\n", lineNumber, string(line[i]))
 			}
 		case '<':
 			if i+1 < len(line) && line[i+1] == '=' {
-				tokens = append(tokens, tokenStruct{LESS_EQUAL, "<=", nil})
+				tokens <- tokenStruct{LESS_EQUAL, "<=", nil}
 				i++
 			} else {
-				tokens = append(tokens, tokenStruct{LESS, "<", nil})
+				tokens <- tokenStruct{LESS, "<", nil}
 			}
 		case '>':
 			if i+1 < len(line) && line[i+1] == '=' {
-				tokens = append(tokens, tokenStruct{GREATER_EQUAL, ">=", nil})
+				tokens <- tokenStruct{GREATER_EQUAL, ">=", nil}
 				i++
 			} else {
-				tokens = append(tokens, tokenStruct{GREATER, ">", nil})
+				tokens <- tokenStruct{GREATER, ">", nil}
 			}
 		case '/':
 			if i+1 < len(line) && line[i+1] == '/' {
 				// handle comments
 				break loop
 			} else {
-				tokens = append(tokens, tokenStruct{SLASH, "/", nil})
+				tokens <- tokenStruct{SLASH, "/", nil}
 			}
 		case '.':
-			tokens = append(tokens, tokenStruct{DOT, ".", nil})
+			tokens <- tokenStruct{DOT, ".", nil}
 		case ' ':
 			// ignore
 		default:
 			err = errors.New("syntax_error")
-			fmt.Fprintf(os.Stderr, "[line %d] Error: Unexpected character: %s\n", lineNumber, string(line[i]))
+			fmt.Fprintf(errout, "[line %d] Error: Unexpected character: %s\n", lineNumber, string(line[i]))
+			continue
 		}
 	}
-	return tokens, err
+	tokens <- tokenStruct{EOF, "", nil}
+	close(tokens)
+	errCh <- err
+	close(errCh)
 }
