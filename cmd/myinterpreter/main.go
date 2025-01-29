@@ -89,7 +89,6 @@ func Tokenize(tokens chan tokenStruct, errCh chan error, line []byte) {
 	var err error = nil
 	lineNumber := 1
 
-loop:
 	for i := 0; i < len(line); i++ {
 		switch line[i] {
 		case '(':
@@ -141,16 +140,24 @@ loop:
 		case '/':
 			if i+1 < len(line) && line[i+1] == '/' {
 				// handle comments
-				break loop
+				for i < len(line) {
+					if line[i] == '\n' {
+						lineNumber++
+						break
+					}
+					i++
+				}
 			} else {
 				tokens <- tokenStruct{SLASH, "/", nil}
 			}
 		case '.':
 			tokens <- tokenStruct{DOT, ".", nil}
 		case ' ':
-		case '\t':
-		case '\n':
 			// ignore
+		case '\t':
+			// ignore
+		case '\n':
+			lineNumber++
 		default:
 			err = errors.New("syntax_error")
 			fmt.Fprintf(os.Stderr, "[line %d] Error: Unexpected character: %s\n", lineNumber, string(line[i]))
