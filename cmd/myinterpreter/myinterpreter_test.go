@@ -17,87 +17,68 @@ type testStruct struct {
 
 var tests []testStruct = []testStruct{
 	{
-		name:   "#RY8",
+		name:   "#RY8 test-1",
 		lines:  "",
 		errors: "",
 		output: "EOF  null\n",
 		retval: 0,
 	},
 	{
-		"TZ7",
-		"() 	@",
-		"[line 1] Error: Unexpected character: @\n",
-		"LEFT_PAREN ( null\nRIGHT_PAREN ) null\nEOF  null\n",
-		65,
+		name:   "TZ7 test-1",
+		lines:  "() 	@",
+		errors: "[line 1] Error: Unexpected character: @\n",
+		output: "LEFT_PAREN ( null\nRIGHT_PAREN ) null\nEOF  null\n",
+		retval: 65,
 	},
-	/*
-	   [tester::#TZ7] Running tests for Stage #TZ7 (Scanning: Multi-line errors)
-	   [tester::#TZ7] [test-1] Running test case: 1
-	   [tester::#TZ7] [test-1] Writing contents to ./test.lox:
-	   [tester::#TZ7] [test-1] [test.lox] ()<|SPACE|><|TAB|>@
-	   [tester::#TZ7] [test-1] $ ./your_program.sh tokenize test.lox
-	   [your_program] LEFT_PAREN ( null
-	   [your_program] [line 2] Error: Unexpected character: @
-	   [your_program] RIGHT_PAREN ) null
-	   [your_program] EOF  null
-	   [tester::#TZ7] [test-1] ✓ 1 line(s) match on stderr
-	   [tester::#TZ7] [test-1] ✓ 3 line(s) match on stdout
-	   [tester::#TZ7] [test-1] ✓ Received exit code 65.
-	   [tester::#TZ7] [test-2] Running test case: 2
-	   [tester::#TZ7] [test-2] Writing contents to ./test.lox:
-	   [tester::#TZ7] [test-2] [test.lox]  <|TAB|>
-	   [tester::#TZ7] [test-2] [test.lox] @
-	   [tester::#TZ7] [test-2] $ ./your_program.sh tokenize test.lox
-	   [your_program] EOF  null
-	   [your_program] [line 2] Error: Unexpected character: @
-	   [tester::#TZ7] [test-2] ✓ 1 line(s) match on stderr
-	   [tester::#TZ7] [test-2] ✓ 1 line(s) match on stdout
-	   [tester::#TZ7] [test-2] ✓ Received exit code 65.
-	   [tester::#TZ7] [test-3] Running test case: 3
-	   [tester::#TZ7] [test-3] Writing contents to ./test.lox:
-	   [tester::#TZ7] [test-3] [test.lox] ()  #<|TAB|>{}
-	   [tester::#TZ7] [test-3] [test.lox] @
-	   [tester::#TZ7] [test-3] [test.lox] $
-	   [tester::#TZ7] [test-3] [test.lox] +++
-	   [tester::#TZ7] [test-3] [test.lox] // Let's Go!
-	   [tester::#TZ7] [test-3] [test.lox] +++
-	   [tester::#TZ7] [test-3] [test.lox] #
-	   [tester::#TZ7] [test-3] $ ./your_program.sh tokenize test.lox
-	   [your_program] [line 1] Error: Unexpected character: #
-	   [your_program] [line 2] Error: Unexpected character: @
-	   [your_program] [line 3] Error: Unexpected character: $
-	   [your_program] [line 7] Error: Unexpected character: #
-	   [your_program] LEFT_PAREN ( null
-	   [your_program] RIGHT_PAREN ) null
-	   [your_program] LEFT_BRACE { null
-	   [your_program] RIGHT_BRACE } null
-	   [your_program] PLUS + null
-	   [your_program] PLUS + null
-	   [your_program] PLUS + null
-	   [your_program] PLUS + null
-	   [your_program] PLUS + null
-	   [your_program] PLUS + null
-	   [your_program] EOF  null
-	   [tester::#TZ7] [test-3] ✓ 4 line(s) match on stderr
-	   [tester::#TZ7] [test-3] ✓ 11 line(s) match on stdout
-	   [tester::#TZ7] [test-3] ✓ Received exit code 65.
-	   [tester::#TZ7] [test-4] Running test case: 4
-	   [tester::#TZ7] [test-4] Writing contents to ./test.lox:
-	   [tester::#TZ7] [test-4] [test.lox] ({*<|TAB|>%})
-	   [tester::#TZ7] [test-4] $ ./your_program.sh tokenize test.lox
-	   [your_program] LEFT_PAREN ( null
-	   [your_program] LEFT_BRACE { null
-	   [your_program] STAR * null
-	   [your_program] RIGHT_BRACE } null
-	   [your_program] [line 1] Error: Unexpected character: %
-	   [your_program] RIGHT_PAREN ) null
-	   [your_program] EOF  null
-	   [tester::#TZ7] [test-4] ✓ 1 line(s) match on stderr
-	   [tester::#TZ7] [test-4] ✓ 6 line(s) match on stdout
-	   [tester::#TZ7] [test-4] ✓ Received exit code 65.
-	   [tester::#TZ7] Test passed.
-	*/
-
+	{
+		name:   "TZ7 test-2",
+		lines:  " \t\n@",
+		errors: "[line 2] Error: Unexpected character: @\n",
+		output: "EOF  null\n",
+		retval: 65,
+	},
+	{
+		name: "TZ7 test-3",
+		lines: `()  #	{}
+@
+$
++++
+// Let's Go!
++++
+#
+`,
+		errors: `[line 1] Error: Unexpected character: #
+[line 2] Error: Unexpected character: @
+[line 3] Error: Unexpected character: $
+[line 7] Error: Unexpected character: #
+`,
+		output: `LEFT_PAREN ( null
+RIGHT_PAREN ) null
+LEFT_BRACE { null
+RIGHT_BRACE } null
+PLUS + null
+PLUS + null
+PLUS + null
+PLUS + null
+PLUS + null
+PLUS + null
+EOF  null
+`,
+		retval: 65,
+	},
+	{
+		name:   "#TZ7 test-4",
+		lines:  "({*	%})",
+		errors: "[line 1] Error: Unexpected character: %\n",
+		output: `LEFT_PAREN ( null
+LEFT_BRACE { null
+STAR * null
+RIGHT_BRACE } null
+RIGHT_PAREN ) null
+EOF  null
+`,
+		retval: 65,
+	},
 }
 
 func doTest(lines []byte) (string, string, int) {
