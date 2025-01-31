@@ -8,4 +8,8 @@
 
 module github.com/codecrafters-io/interpreter-starter-go
 
-go 1.22
+require example.com/cjon/tokenizer v0.0.0
+
+replace example.com/cjon/tokenizer => ./pkg/tokenizer/
+
+go 1.22.11
