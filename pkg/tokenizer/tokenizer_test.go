@@ -16,6 +16,53 @@ type testStruct struct {
 }
 
 var tests []testStruct = []testStruct{
+	// 	{
+	// 		name: "",
+	// 		lines: `
+	// `,
+	// 	errors: `
+	// `,
+	// 		output: `
+	// `,
+	// 		retval: 0,
+	// 	},
+	{
+		name: "[UE7] [test-4]",
+		lines: `("world"+"hello") != "other_string"
+`,
+		errors: ``,
+		output: `LEFT_PAREN ( null
+STRING "world" world
+PLUS + null
+STRING "hello" hello
+RIGHT_PAREN ) null
+BANG_EQUAL != null
+STRING "other_string" other_string
+EOF  null
+`,
+		retval: 0,
+	},
+	{
+		name:  "String unterminated",
+		lines: `"baz" "unterminated`,
+		errors: `[line 1] Error: Unterminated string.
+`,
+		output: `STRING "baz" baz
+EOF  null
+`,
+		retval: 65,
+	},
+	{
+		name: "String works",
+		lines: `
+"foo baz"
+`,
+		errors: ``,
+		output: `STRING "foo baz" foo baz
+EOF  null
+`,
+		retval: 0,
+	},
 	{
 		name: "[TZ7] [test-1]",
 		lines: `

@@ -7,17 +7,13 @@ import (
 )
 
 type TokenStruct struct {
-	Type      TokenType
-	Str       string
-	NullThing interface{}
+	Type    TokenType
+	Lexeme  string
+	Literal string
 }
 
 func (t TokenStruct) String() string {
-	nullStr := ""
-	if t.NullThing == nil {
-		nullStr = "null"
-	}
-	return fmt.Sprintf("%s %s %s", t.Type, t.Str, nullStr)
+	return fmt.Sprintf("%s %s %s", t.Type, t.Lexeme, t.Literal)
 }
 
 //go:generate stringer -type=TokenType
@@ -44,6 +40,7 @@ const (
 	SLASH
 	DOT
 	BANG
+	STRING
 )
 
 // func main() {
@@ -87,55 +84,80 @@ func Parse(tokens chan TokenStruct) {
 
 func Tokenize(tokens chan TokenStruct, errCh chan error, line []byte) {
 	var err error = nil
+	i := 0
 	lineNumber := 1
+	tokenizeString := func() error {
+		terminated := false
+		ln := lineNumber
+		ts := []byte{}
+		for ; i < len(line); i++ {
+			if line[i] == '"' {
+				terminated = true
+				break
+			}
+			if line[i] == '\n' {
+				lineNumber++
+				break
+			}
+			ts = append(ts, line[i])
+		}
+		if !terminated {
+			fmt.Fprintf(os.Stderr, "[line %d] Error: Unterminated string.\n", ln)
+			return errors.New("syntax_error")
+		}
+		str := string(ts)
+		qstr := "\"" + str + "\""
+		tokens <- TokenStruct{STRING, qstr, str}
+		return nil
+	}
 
-	for i := 0; i < len(line); i++ {
+	for ; i < len(line); i++ {
 		switch line[i] {
 		case '(':
-			tokens <- TokenStruct{LEFT_PAREN, "(", nil}
+			tokens <- TokenStruct{LEFT_PAREN, "(", "null"}
 		case ')':
-			tokens <- TokenStruct{RIGHT_PAREN, ")", nil}
+			tokens <- TokenStruct{RIGHT_PAREN, ")", "null"}
 		case '{':
-			tokens <- TokenStruct{LEFT_BRACE, "{", nil}
+			tokens <- TokenStruct{LEFT_BRACE, "{", "null"}
 		case '}':
-			tokens <- TokenStruct{RIGHT_BRACE, "}", nil}
+			tokens <- TokenStruct{RIGHT_BRACE, "}", "null"}
 		case ';':
-			tokens <- TokenStruct{SEMICOLON, ";", nil}
+			tokens <- TokenStruct{SEMICOLON, ";", "null"}
 		case ',':
-			tokens <- TokenStruct{COMMA, ",", nil}
+			tokens <- TokenStruct{COMMA, ",", "null"}
 		case '+':
-			tokens <- TokenStruct{PLUS, "+", nil}
+			tokens <- TokenStruct{PLUS, "+", "null"}
 		case '-':
-			tokens <- TokenStruct{MINUS, "-", nil}
+			tokens <- TokenStruct{MINUS, "-", "null"}
 		case '*':
-			tokens <- TokenStruct{STAR, "*", nil}
+			tokens <- TokenStruct{STAR, "*", "null"}
 		case '!':
 			if i+1 < len(line) && line[i+1] == '=' {
 				i++
-				tokens <- TokenStruct{BANG_EQUAL, "!=", nil}
+				tokens <- TokenStruct{BANG_EQUAL, "!=", "null"}
 			} else {
-				tokens <- TokenStruct{BANG, "!", nil}
+				tokens <- TokenStruct{BANG, "!", "null"}
 			}
 		case '=':
 			if i+1 < len(line) && line[i+1] == '=' {
-				tokens <- TokenStruct{EQUAL_EQUAL, "==", nil}
+				tokens <- TokenStruct{EQUAL_EQUAL, "==", "null"}
 				i++
 			} else {
-				tokens <- TokenStruct{EQUAL, "=", nil}
+				tokens <- TokenStruct{EQUAL, "=", "null"}
 			}
 		case '<':
 			if i+1 < len(line) && line[i+1] == '=' {
-				tokens <- TokenStruct{LESS_EQUAL, "<=", nil}
+				tokens <- TokenStruct{LESS_EQUAL, "<=", "null"}
 				i++
 			} else {
-				tokens <- TokenStruct{LESS, "<", nil}
+				tokens <- TokenStruct{LESS, "<", "null"}
 			}
 		case '>':
 			if i+1 < len(line) && line[i+1] == '=' {
-				tokens <- TokenStruct{GREATER_EQUAL, ">=", nil}
+				tokens <- TokenStruct{GREATER_EQUAL, ">=", "null"}
 				i++
 			} else {
-				tokens <- TokenStruct{GREATER, ">", nil}
+				tokens <- TokenStruct{GREATER, ">", "null"}
 			}
 		case '/':
 			if i+1 < len(line) && line[i+1] == '/' {
@@ -148,23 +170,26 @@ func Tokenize(tokens chan TokenStruct, errCh chan error, line []byte) {
 					i++
 				}
 			} else {
-				tokens <- TokenStruct{SLASH, "/", nil}
+				tokens <- TokenStruct{SLASH, "/", "null"}
 			}
 		case '.':
-			tokens <- TokenStruct{DOT, ".", nil}
+			tokens <- TokenStruct{DOT, ".", "null"}
 		case ' ':
 			// ignore
 		case '\t':
 			// ignore
 		case '\n':
 			lineNumber++
+		case '"':
+			i++
+			err = tokenizeString()
 		default:
 			err = errors.New("syntax_error")
 			fmt.Fprintf(os.Stderr, "[line %d] Error: Unexpected character: %s\n", lineNumber, string(line[i]))
 			continue
 		}
 	}
-	tokens <- TokenStruct{EOF, "", nil}
+	tokens <- TokenStruct{EOF, "", "null"}
 	close(tokens)
 	errCh <- err
 	close(errCh)
