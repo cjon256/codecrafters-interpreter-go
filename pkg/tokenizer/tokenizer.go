@@ -44,51 +44,20 @@ const (
 	BANG
 	STRING
 	NUMBER
+	IDENTIFIER
 )
-
-// func main() {
-// 	if len(os.Args) < 3 {
-// 		fmt.Fprintln(os.Stderr, "Usage: ./your_program.sh tokenize <filename>")
-// 		os.Exit(1)
-// 	}
-//
-// 	command := os.Args[1]
-//
-// 	if command != "tokenize" {
-// 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", command)
-// 		os.Exit(1)
-// 	}
-//
-// 	filename := os.Args[2]
-// 	lines, err := os.ReadFile(filename)
-// 	if err != nil {
-// 		fmt.Fprintf(os.Stderr, "Error reading file: %v\n", err)
-// 		os.Exit(1)
-// 	}
-//
-// 	errCh := make(chan error)
-// 	tokenCh := make(chan tokenStruct)
-//
-// 	go Tokenize(tokenCh, errCh, lines)
-// 	Parse(tokenCh)
-//
-// 	err = <-errCh
-// 	if err != nil {
-// 		os.Exit(65)
-// 	}
-// 	os.Exit(0)
-// }
-
-func Parse(tokens chan TokenStruct) {
-	for t := range tokens {
-		fmt.Println(t)
-	}
-}
 
 func Tokenize(tokens chan TokenStruct, errCh chan error, line []byte) {
 	var err error = nil
 	i := 0
 	lineNumber := 1
+	peek := func() (bool, byte) {
+		if i+1 == len(line) {
+			return false, ' '
+		}
+		return true, line[i+1]
+	}
+
 	tokenizeString := func() error {
 		terminated := false
 		ln := lineNumber
@@ -120,16 +89,17 @@ func Tokenize(tokens chan TokenStruct, errCh chan error, line []byte) {
 		for ; i < len(line); i++ {
 			// fmt.Fprintf(os.Stderr, "num (%d): %v\n", i, line[i])
 			ts = append(ts, line[i])
-			if i == len(line)-1 {
+			ok, nextByte := peek()
+			if !ok {
 				// at end of line
 				break
 			}
-			if line[i+1] == '.' {
+			if nextByte == '.' {
 				if dotSeen {
 					break
 				}
 				dotSeen = true
-			} else if !unicode.IsDigit(rune(line[i+1])) {
+			} else if !unicode.IsDigit(rune(nextByte)) {
 				break
 			}
 		}
@@ -147,6 +117,28 @@ func Tokenize(tokens chan TokenStruct, errCh chan error, line []byte) {
 		}
 		// fmt.Fprintf(os.Stderr, "num (%v): %s,%s ... %s\n", dotSeen, str, nstr, line[i:])
 		tokens <- TokenStruct{NUMBER, str, nstr}
+	}
+
+	isIdentifierByte := func(c byte) bool {
+		// Check if the byte value falls within the range of alphanumeric characters
+		return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c == '_')
+	}
+
+	tokenizeIdentifier := func() {
+		ts := []byte{}
+		for ; i < len(line); i++ {
+			ts = append(ts, line[i])
+			ok, nextByte := peek()
+			if !ok {
+				// at end of line
+				break
+			}
+			if !(unicode.IsDigit(rune(nextByte)) || isIdentifierByte(nextByte)) {
+				break
+			}
+		}
+		str := string(ts)
+		tokens <- TokenStruct{IDENTIFIER, str, "null"}
 	}
 
 	for ; i < len(line); i++ {
@@ -224,6 +216,10 @@ func Tokenize(tokens chan TokenStruct, errCh chan error, line []byte) {
 		default:
 			if unicode.IsDigit(rune(line[i])) {
 				tokenizeNumber()
+				continue
+			}
+			if isIdentifierByte(line[i]) {
+				tokenizeIdentifier()
 				continue
 			}
 			err = errors.New("syntax_error")

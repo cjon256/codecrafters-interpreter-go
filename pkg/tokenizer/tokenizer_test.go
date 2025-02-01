@@ -27,6 +27,19 @@ var tests []testStruct = []testStruct{
 	// 		retval: 0,
 	// 	},
 	{
+		name: "basic identifiers",
+		lines: `
+		foo bar _hello
+`,
+		errors: ``,
+		output: `IDENTIFIER foo null
+IDENTIFIER bar null
+IDENTIFIER _hello null
+EOF  null
+`,
+		retval: 0,
+	},
+	{
 		name: "basic number",
 		lines: `
 34.7
