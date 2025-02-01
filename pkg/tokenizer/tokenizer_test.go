@@ -733,8 +733,6 @@ func doTest(lines []byte) (string, string, int) {
 	output := ""
 	retval := 0
 
-	fmt.Printf("lines is %v\n", lines)
-
 	errCh := make(chan error)
 	tokCh := make(chan TokenStruct)
 
@@ -759,15 +757,17 @@ func doTest(lines []byte) (string, string, int) {
 
 func TestTokenize(t *testing.T) {
 	for _, test := range tests {
-		output, errs, retval := doTest([]byte(test.lines))
-		if test.output != output {
-			t.Errorf("%s: output does not match:\n\texpected '%#v'\n\tgot    : '%#v'\n", test.name, test.output, output)
-		}
-		if test.errors != errs {
-			t.Errorf("%s: errors does not match:\n\texpected '%#v'\n\tgot    : '%#v'\n", test.name, test.errors, errs)
-		}
-		if test.retval != retval {
-			t.Errorf("%s: retval does not match:\n\texpected %d\n\tgot       : %d\n", test.name, test.retval, retval)
-		}
+		t.Run(test.name, func(t *testing.T) {
+			output, errs, retval := doTest([]byte(test.lines))
+			if test.output != output {
+				t.Errorf("%s: output does not match:\n\texpected '%#v'\n\tgot    : '%#v'\n", test.name, test.output, output)
+			}
+			if test.errors != errs {
+				t.Errorf("%s: errors does not match:\n\texpected '%#v'\n\tgot    : '%#v'\n", test.name, test.errors, errs)
+			}
+			if test.retval != retval {
+				t.Errorf("%s: retval does not match:\n\texpected %d\n\tgot       : %d\n", test.name, test.retval, retval)
+			}
+		})
 	}
 }
