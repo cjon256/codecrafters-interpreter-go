@@ -40,6 +40,17 @@ EOF  null
 		retval: 0,
 	},
 	{
+		name:   "identifiers at end",
+		lines:  `foo b8r _hello`,
+		errors: ``,
+		output: `IDENTIFIER foo null
+IDENTIFIER b8r null
+IDENTIFIER _hello null
+EOF  null
+`,
+		retval: 0,
+	},
+	{
 		name: "basic number",
 		lines: `
 34.7
