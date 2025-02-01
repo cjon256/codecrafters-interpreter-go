@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
+	"unicode"
 )
 
 type TokenStruct struct {
@@ -41,6 +43,7 @@ const (
 	DOT
 	BANG
 	STRING
+	NUMBER
 )
 
 // func main() {
@@ -109,6 +112,41 @@ func Tokenize(tokens chan TokenStruct, errCh chan error, line []byte) {
 		qstr := "\"" + str + "\""
 		tokens <- TokenStruct{STRING, qstr, str}
 		return nil
+	}
+
+	tokenizeNumber := func() {
+		ts := []byte{}
+		dotSeen := false
+		for ; i < len(line); i++ {
+			// fmt.Fprintf(os.Stderr, "num (%d): %v\n", i, line[i])
+			ts = append(ts, line[i])
+			if i == len(line)-1 {
+				// at end of line
+				break
+			}
+			if line[i+1] == '.' {
+				if dotSeen {
+					break
+				}
+				dotSeen = true
+			} else if !unicode.IsDigit(rune(line[i+1])) {
+				break
+			}
+		}
+		str := string(ts)
+		nstr := str
+		if !dotSeen {
+			nstr = nstr + ".0"
+		} else {
+			// this bit just removes trailing zeros
+			nstr = strings.TrimRight(nstr, "0")
+			// and adds one back in if there were only zeros
+			if strings.HasSuffix(nstr, ".") {
+				nstr = nstr + "0"
+			}
+		}
+		// fmt.Fprintf(os.Stderr, "num (%v): %s,%s ... %s\n", dotSeen, str, nstr, line[i:])
+		tokens <- TokenStruct{NUMBER, str, nstr}
 	}
 
 	for ; i < len(line); i++ {
@@ -184,9 +222,12 @@ func Tokenize(tokens chan TokenStruct, errCh chan error, line []byte) {
 			i++
 			err = tokenizeString()
 		default:
+			if unicode.IsDigit(rune(line[i])) {
+				tokenizeNumber()
+				continue
+			}
 			err = errors.New("syntax_error")
 			fmt.Fprintf(os.Stderr, "[line %d] Error: Unexpected character: %s\n", lineNumber, string(line[i]))
-			continue
 		}
 	}
 	tokens <- TokenStruct{EOF, "", "null"}

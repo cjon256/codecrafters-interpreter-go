@@ -27,6 +27,52 @@ var tests []testStruct = []testStruct{
 	// 		retval: 0,
 	// 	},
 	{
+		name: "basic number",
+		lines: `
+34.7
+`,
+		errors: ``,
+		output: `NUMBER 34.7 34.7
+EOF  null
+`,
+		retval: 0,
+	},
+	{
+		name: "integer",
+		lines: `
+34
+`,
+		errors: ``,
+		output: `NUMBER 34 34.0
+EOF  null
+`,
+		retval: 0,
+	},
+	{
+		name: "double dots",
+		lines: `
+34.7.34.70000`,
+		errors: ``,
+		output: `NUMBER 34.7 34.7
+DOT . null
+NUMBER 34.70000 34.7
+EOF  null
+`,
+		retval: 0,
+	},
+	{
+		name: "catches char after",
+		lines: `
+34.7"hello"
+`,
+		errors: ``,
+		output: `NUMBER 34.7 34.7
+STRING "hello" hello
+EOF  null
+`,
+		retval: 0,
+	},
+	{
 		name: "[UE7] [test-4]",
 		lines: `("world"+"hello") != "other_string"
 `,
