@@ -45,7 +45,25 @@ const (
 	STRING
 	NUMBER
 	IDENTIFIER
+	AND
+	CLASS
+	ELSE
+	FALSE
+	FOR
+	FUN
+	IF
+	NIL
+	OR
+	PRINT
+	RETURN
+	SUPER
+	THIS
+	TRUE
+	VAR
+	WHILE
 )
+
+var KEYWORDS map[string]TokenType = map[string]TokenType{"and": AND, "class": CLASS, "else": ELSE, "false": FALSE, "for": FOR, "fun": FUN, "if": IF, "nil": NIL, "or": OR, "print": PRINT, "return": RETURN, "super": SUPER, "this": THIS, "true": TRUE, "var": VAR, "while": WHILE, "null": EOF}
 
 func Tokenize(tokens chan TokenStruct, errCh chan error, line []byte) {
 	var err error = nil
@@ -138,7 +156,12 @@ func Tokenize(tokens chan TokenStruct, errCh chan error, line []byte) {
 			}
 		}
 		str := string(ts)
-		tokens <- TokenStruct{IDENTIFIER, str, "null"}
+		lexeme, ok := KEYWORDS[str]
+		if !ok {
+			tokens <- TokenStruct{IDENTIFIER, str, "null"}
+		} else {
+			tokens <- TokenStruct{lexeme, str, "null"}
+		}
 	}
 
 	for ; i < len(line); i++ {

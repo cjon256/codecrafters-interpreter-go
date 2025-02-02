@@ -27,6 +27,32 @@ var tests []testStruct = []testStruct{
 	// 		retval: 0,
 	// 	},
 	{
+		name: "basic keywords",
+		lines: `
+and class else false for fun if nil or print return super this true var while
+`,
+		errors: ``,
+		output: `AND and null
+CLASS class null
+ELSE else null
+FALSE false null
+FOR for null
+FUN fun null
+IF if null
+NIL nil null
+OR or null
+PRINT print null
+RETURN return null
+SUPER super null
+THIS this null
+TRUE true null
+VAR var null
+WHILE while null
+EOF  null
+`,
+		retval: 0,
+	},
+	{
 		name: "basic identifiers",
 		lines: `
 		foo bar _hello
