@@ -10,6 +10,10 @@ module github.com/codecrafters-io/interpreter-starter-go
 
 require example.com/cjon/tokenizer v0.0.0
 
+require example.com/cjon/parser v0.0.0
+
 replace example.com/cjon/tokenizer => ./pkg/tokenizer/
+
+replace example.com/cjon/parser => ./pkg/parser/
 
 go 1.22.11
