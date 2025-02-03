@@ -26,7 +26,6 @@ func main() {
 		go tokenizer.Tokenize(tokenCh, errCh, lines)
 		printTokens(tokenCh)
 		err = <-errCh
-		close(errCh)
 	case "parse":
 		errCh := make(chan error)
 		tokenCh := make(chan tokenizer.TokenStruct)
