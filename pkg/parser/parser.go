@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"example.com/cjon/tokenizer"
+	"example.com/cjon/token"
 )
 
 type ASTnode interface {
@@ -27,35 +27,39 @@ func (l ASTliteral) String() string {
 	return l.Contents
 }
 
-func ParseLines(tokens chan tokenizer.TokenStruct) error {
+func ParseLines(tokens chan token.Struct) error {
+	return nil
 }
 
-func Parse(tokens chan tokenizer.TokenStruct) error {
+func parseOne() {
+}
+
+func Parse(tokens chan token.Struct) error {
 	var group func() (ASTnode, error)
 	group = func() (ASTnode, error) {
 		g := ASTgroup{}
 		c := <-tokens
 		switch c.Type {
-		case tokenizer.EOF:
+		case token.EOF:
 			return g, errors.New("parse_error")
-		case tokenizer.RIGHT_PAREN:
+		case token.RIGHT_PAREN:
 			return g, errors.New("parse_error")
-		case tokenizer.LEFT_PAREN:
+		case token.LEFT_PAREN:
 			var err error
 			g.Contents, err = group()
 			if err != nil {
 			}
-		case tokenizer.STRING:
+		case token.STRING:
 			g.Contents = ASTliteral{c.Literal}
-		case tokenizer.NUMBER:
+		case token.NUMBER:
 			g.Contents = ASTliteral{c.Literal}
-		case tokenizer.IDENTIFIER:
+		case token.IDENTIFIER:
 			g.Contents = ASTliteral{c.Literal}
-		case tokenizer.TRUE:
+		case token.TRUE:
 			g.Contents = ASTliteral{c.Literal}
-		case tokenizer.FALSE:
+		case token.FALSE:
 			g.Contents = ASTliteral{c.Literal}
-		case tokenizer.NIL:
+		case token.NIL:
 			g.Contents = ASTliteral{c.Literal}
 
 		default:
@@ -63,33 +67,33 @@ func Parse(tokens chan tokenizer.TokenStruct) error {
 		}
 
 		close := <-tokens
-		if close.Type != tokenizer.LEFT_PAREN {
+		if close.Type != token.LEFT_PAREN {
 			return g, errors.New("parse_error")
 		}
 		return g, nil
 	}
 	for t := range tokens {
 		switch t.Type {
-		case tokenizer.EOF:
+		case token.EOF:
 			continue
-		case tokenizer.RIGHT_PAREN:
+		case token.RIGHT_PAREN:
 			return errors.New("parse_error")
-		case tokenizer.LEFT_PAREN:
-			err := group()
+		case token.LEFT_PAREN:
+			node, err := group()
 			if err != nil {
 				return err
 			}
-		case tokenizer.STRING:
+		case token.STRING:
 			fmt.Print(t.Literal)
-		case tokenizer.NUMBER:
+		case token.NUMBER:
 			fmt.Print(t.Literal)
-		case tokenizer.IDENTIFIER:
+		case token.IDENTIFIER:
 			fmt.Print(t.Lexeme)
-		case tokenizer.TRUE:
+		case token.TRUE:
 			fmt.Print(t.Lexeme)
-		case tokenizer.FALSE:
+		case token.FALSE:
 			fmt.Print(t.Lexeme)
-		case tokenizer.NIL:
+		case token.NIL:
 			fmt.Print(t.Lexeme)
 		default:
 			return errors.New("parse_error")

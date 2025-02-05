@@ -5,6 +5,8 @@ import (
 	"io"
 	"os"
 	"testing"
+
+	"example.com/cjon/token"
 )
 
 type testStruct struct {
@@ -784,7 +786,7 @@ func doTest(lines []byte) (string, string, int) {
 	retval := 0
 
 	errCh := make(chan error)
-	tokCh := make(chan TokenStruct)
+	tokCh := make(chan token.Struct)
 
 	oldStderr := os.Stderr
 	r, w, _ := os.Pipe()

@@ -6,66 +6,11 @@ import (
 	"os"
 	"strings"
 	"unicode"
+
+	"example.com/cjon/token"
 )
 
-type TokenStruct struct {
-	Type    TokenType
-	Lexeme  string
-	Literal string
-}
-
-func (t TokenStruct) String() string {
-	return fmt.Sprintf("%s %s %s", t.Type, t.Lexeme, t.Literal)
-}
-
-//go:generate stringer -type=TokenType
-type TokenType int
-
-const (
-	EOF TokenType = iota
-	LEFT_PAREN
-	RIGHT_PAREN
-	LEFT_BRACE
-	RIGHT_BRACE
-	SEMICOLON
-	COMMA
-	PLUS
-	MINUS
-	EQUAL
-	STAR
-	BANG_EQUAL
-	EQUAL_EQUAL
-	LESS_EQUAL
-	GREATER_EQUAL
-	LESS
-	GREATER
-	SLASH
-	DOT
-	BANG
-	STRING
-	NUMBER
-	IDENTIFIER
-	AND
-	CLASS
-	ELSE
-	FALSE
-	FOR
-	FUN
-	IF
-	NIL
-	OR
-	PRINT
-	RETURN
-	SUPER
-	THIS
-	TRUE
-	VAR
-	WHILE
-)
-
-var KEYWORDS map[string]TokenType = map[string]TokenType{"and": AND, "class": CLASS, "else": ELSE, "false": FALSE, "for": FOR, "fun": FUN, "if": IF, "nil": NIL, "or": OR, "print": PRINT, "return": RETURN, "super": SUPER, "this": THIS, "true": TRUE, "var": VAR, "while": WHILE, "null": EOF}
-
-func Tokenize(tokens chan TokenStruct, errCh chan error, line []byte) {
+func Tokenize(tokens chan token.Struct, errCh chan error, line []byte) {
 	var err error = nil
 	i := 0
 	lineNumber := 1
@@ -97,7 +42,7 @@ func Tokenize(tokens chan TokenStruct, errCh chan error, line []byte) {
 		}
 		str := string(ts)
 		qstr := "\"" + str + "\""
-		tokens <- TokenStruct{STRING, qstr, str}
+		tokens <- token.Struct{token.STRING, qstr, str}
 		return nil
 	}
 
@@ -134,7 +79,7 @@ func Tokenize(tokens chan TokenStruct, errCh chan error, line []byte) {
 			}
 		}
 		// fmt.Fprintf(os.Stderr, "num (%v): %s,%s ... %s\n", dotSeen, str, nstr, line[i:])
-		tokens <- TokenStruct{NUMBER, str, nstr}
+		tokens <- token.Struct{Type: token.NUMBER, Lexeme: str, Literal: nstr}
 	}
 
 	isIdentifierByte := func(c byte) bool {
@@ -156,61 +101,61 @@ func Tokenize(tokens chan TokenStruct, errCh chan error, line []byte) {
 			}
 		}
 		str := string(ts)
-		lexeme, ok := KEYWORDS[str]
+		lexeme, ok := token.KEYWORDS[str]
 		if !ok {
-			tokens <- TokenStruct{IDENTIFIER, str, "null"}
+			tokens <- token.Struct{token.IDENTIFIER, str, "null"}
 		} else {
-			tokens <- TokenStruct{lexeme, str, "null"}
+			tokens <- token.Struct{lexeme, str, "null"}
 		}
 	}
 
 	for ; i < len(line); i++ {
 		switch line[i] {
 		case '(':
-			tokens <- TokenStruct{LEFT_PAREN, "(", "null"}
+			tokens <- token.Struct{token.LEFT_PAREN, "(", "null"}
 		case ')':
-			tokens <- TokenStruct{RIGHT_PAREN, ")", "null"}
+			tokens <- token.Struct{token.RIGHT_PAREN, ")", "null"}
 		case '{':
-			tokens <- TokenStruct{LEFT_BRACE, "{", "null"}
+			tokens <- token.Struct{token.LEFT_BRACE, "{", "null"}
 		case '}':
-			tokens <- TokenStruct{RIGHT_BRACE, "}", "null"}
+			tokens <- token.Struct{token.RIGHT_BRACE, "}", "null"}
 		case ';':
-			tokens <- TokenStruct{SEMICOLON, ";", "null"}
+			tokens <- token.Struct{token.SEMICOLON, ";", "null"}
 		case ',':
-			tokens <- TokenStruct{COMMA, ",", "null"}
+			tokens <- token.Struct{token.COMMA, ",", "null"}
 		case '+':
-			tokens <- TokenStruct{PLUS, "+", "null"}
+			tokens <- token.Struct{token.PLUS, "+", "null"}
 		case '-':
-			tokens <- TokenStruct{MINUS, "-", "null"}
+			tokens <- token.Struct{token.MINUS, "-", "null"}
 		case '*':
-			tokens <- TokenStruct{STAR, "*", "null"}
+			tokens <- token.Struct{token.STAR, "*", "null"}
 		case '!':
 			if i+1 < len(line) && line[i+1] == '=' {
 				i++
-				tokens <- TokenStruct{BANG_EQUAL, "!=", "null"}
+				tokens <- token.Struct{token.BANG_EQUAL, "!=", "null"}
 			} else {
-				tokens <- TokenStruct{BANG, "!", "null"}
+				tokens <- token.Struct{token.BANG, "!", "null"}
 			}
 		case '=':
 			if i+1 < len(line) && line[i+1] == '=' {
-				tokens <- TokenStruct{EQUAL_EQUAL, "==", "null"}
+				tokens <- token.Struct{token.EQUAL_EQUAL, "==", "null"}
 				i++
 			} else {
-				tokens <- TokenStruct{EQUAL, "=", "null"}
+				tokens <- token.Struct{token.EQUAL, "=", "null"}
 			}
 		case '<':
 			if i+1 < len(line) && line[i+1] == '=' {
-				tokens <- TokenStruct{LESS_EQUAL, "<=", "null"}
+				tokens <- token.Struct{token.LESS_EQUAL, "<=", "null"}
 				i++
 			} else {
-				tokens <- TokenStruct{LESS, "<", "null"}
+				tokens <- token.Struct{token.LESS, "<", "null"}
 			}
 		case '>':
 			if i+1 < len(line) && line[i+1] == '=' {
-				tokens <- TokenStruct{GREATER_EQUAL, ">=", "null"}
+				tokens <- token.Struct{token.GREATER_EQUAL, ">=", "null"}
 				i++
 			} else {
-				tokens <- TokenStruct{GREATER, ">", "null"}
+				tokens <- token.Struct{token.GREATER, ">", "null"}
 			}
 		case '/':
 			if i+1 < len(line) && line[i+1] == '/' {
@@ -223,10 +168,10 @@ func Tokenize(tokens chan TokenStruct, errCh chan error, line []byte) {
 					i++
 				}
 			} else {
-				tokens <- TokenStruct{SLASH, "/", "null"}
+				tokens <- token.Struct{token.SLASH, "/", "null"}
 			}
 		case '.':
-			tokens <- TokenStruct{DOT, ".", "null"}
+			tokens <- token.Struct{token.DOT, ".", "null"}
 		case ' ':
 			// ignore
 		case '\t':
@@ -249,7 +194,7 @@ func Tokenize(tokens chan TokenStruct, errCh chan error, line []byte) {
 			fmt.Fprintf(os.Stderr, "[line %d] Error: Unexpected character: %s\n", lineNumber, string(line[i]))
 		}
 	}
-	tokens <- TokenStruct{EOF, "", "null"}
+	tokens <- token.Struct{token.EOF, "", "null"}
 	close(tokens)
 	errCh <- err
 	close(errCh)

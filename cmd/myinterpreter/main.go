@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"example.com/cjon/parser"
+	"example.com/cjon/token"
 	"example.com/cjon/tokenizer"
 )
 
@@ -21,14 +22,14 @@ func main() {
 	switch command {
 	case "tokenize":
 		errCh := make(chan error)
-		tokenCh := make(chan tokenizer.TokenStruct)
+		tokenCh := make(chan token.Struct)
 		lines := getLines(os.Args[2])
 		go tokenizer.Tokenize(tokenCh, errCh, lines)
 		printTokens(tokenCh)
 		err = <-errCh
 	case "parse":
 		errCh := make(chan error)
-		tokenCh := make(chan tokenizer.TokenStruct)
+		tokenCh := make(chan token.Struct)
 		lines := getLines(os.Args[2])
 		go tokenizer.Tokenize(tokenCh, errCh, lines)
 		err = parser.Parse(tokenCh)
@@ -67,7 +68,7 @@ func getLines(filename string) []byte {
 	return lines
 }
 
-func printTokens(tokens chan tokenizer.TokenStruct) {
+func printTokens(tokens chan token.Struct) {
 	for t := range tokens {
 		fmt.Println(t)
 	}

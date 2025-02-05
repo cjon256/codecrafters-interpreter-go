@@ -12,6 +12,10 @@ require example.com/cjon/tokenizer v0.0.0
 
 require example.com/cjon/parser v0.0.0
 
+require example.com/cjon/token v0.0.0 // indirect
+
+replace example.com/cjon/token => ./pkg/token/
+
 replace example.com/cjon/tokenizer => ./pkg/tokenizer/
 
 replace example.com/cjon/parser => ./pkg/parser/
