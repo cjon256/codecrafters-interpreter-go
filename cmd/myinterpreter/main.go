@@ -36,7 +36,6 @@ func main() {
 		if err == nil {
 			err = <-errCh
 		}
-		close(errCh)
 	default:
 		err = errors.New("argument_error")
 	}

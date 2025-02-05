@@ -36,6 +36,8 @@ func parseOne() {
 
 func Parse(tokens chan token.Struct) error {
 	var group func() (ASTnode, error)
+	var literal func(token.Struct) (ASTnode, error)
+
 	group = func() (ASTnode, error) {
 		g := ASTgroup{}
 		c := <-tokens
@@ -44,60 +46,67 @@ func Parse(tokens chan token.Struct) error {
 			return g, errors.New("parse_error")
 		case token.RIGHT_PAREN:
 			return g, errors.New("parse_error")
-		case token.LEFT_PAREN:
-			var err error
-			g.Contents, err = group()
-			if err != nil {
-			}
-		case token.STRING:
-			g.Contents = ASTliteral{c.Literal}
-		case token.NUMBER:
-			g.Contents = ASTliteral{c.Literal}
-		case token.IDENTIFIER:
-			g.Contents = ASTliteral{c.Literal}
-		case token.TRUE:
-			g.Contents = ASTliteral{c.Literal}
-		case token.FALSE:
-			g.Contents = ASTliteral{c.Literal}
-		case token.NIL:
-			g.Contents = ASTliteral{c.Literal}
-
 		default:
-			return g, errors.New("parse_error")
+			node, err := literal(c)
+			if err != nil {
+				return g, err
+			}
+			g.Contents = node
 		}
 
 		close := <-tokens
-		if close.Type != token.LEFT_PAREN {
+		if close.Type != token.RIGHT_PAREN {
 			return g, errors.New("parse_error")
 		}
 		return g, nil
 	}
-	for t := range tokens {
+
+	literal = func(t token.Struct) (ASTnode, error) {
 		switch t.Type {
 		case token.EOF:
-			continue
+			return ASTliteral{}, errors.New("EOF")
 		case token.RIGHT_PAREN:
-			return errors.New("parse_error")
+			return ASTliteral{}, errors.New("parse_error")
 		case token.LEFT_PAREN:
 			node, err := group()
 			if err != nil {
+				return ASTliteral{}, err
+			}
+			return node, nil
+		case token.STRING:
+			return ASTliteral{t.Literal}, nil
+		case token.NUMBER:
+			return ASTliteral{t.Literal}, nil
+		case token.IDENTIFIER:
+			return ASTliteral{t.Lexeme}, nil
+		case token.TRUE:
+			return ASTliteral{t.Lexeme}, nil
+		case token.FALSE:
+			return ASTliteral{t.Lexeme}, nil
+		case token.NIL:
+			return ASTliteral{t.Lexeme}, nil
+		default:
+			fmt.Print("errorrrrrr")
+			return ASTliteral{}, errors.New("parse_error")
+		}
+	}
+
+	lastStr := ""
+	for t := range tokens {
+		node, err := literal(t)
+		if err != nil {
+			switch err.Error() {
+			case "EOF":
+				fmt.Print(lastStr)
+				return nil
+			default:
 				return err
 			}
-		case token.STRING:
-			fmt.Print(t.Literal)
-		case token.NUMBER:
-			fmt.Print(t.Literal)
-		case token.IDENTIFIER:
-			fmt.Print(t.Lexeme)
-		case token.TRUE:
-			fmt.Print(t.Lexeme)
-		case token.FALSE:
-			fmt.Print(t.Lexeme)
-		case token.NIL:
-			fmt.Print(t.Lexeme)
-		default:
-			return errors.New("parse_error")
 		}
+		if lastStr != "" {
+			fmt.Print(lastStr, " ")
+		}
+		lastStr = node.String()
 	}
 	return nil
 }
