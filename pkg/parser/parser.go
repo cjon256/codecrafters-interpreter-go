@@ -28,8 +28,8 @@ func (l ASTliteral) String() string {
 }
 
 type ASTunary struct {
-	Contents ASTnode
 	Operator token.Type
+	Contents ASTnode
 }
 
 func (l ASTunary) String() string {
@@ -42,6 +42,32 @@ func (l ASTunary) String() string {
 		return str
 	default:
 		return l.Contents.String()
+	}
+}
+
+type ASTbinary struct {
+	Operator token.Type
+	Left     ASTnode
+	Right    ASTnode
+}
+
+func (b ASTbinary) String() string {
+	switch b.Operator {
+	case token.SLASH:
+		str := fmt.Sprintf("(/ %s %s)", b.Left, b.Right)
+		return str
+	case token.STAR:
+		str := fmt.Sprintf("(* %s %s)", b.Left, b.Right)
+		return str
+	case token.PLUS:
+		str := fmt.Sprintf("(+ %s %s)", b.Left, b.Right)
+		return str
+	case token.MINUS:
+		str := fmt.Sprintf("(- %s %s)", b.Left, b.Right)
+		return str
+	default:
+		str := fmt.Sprintf("(%s %s)", b.Left, b.Right)
+		return str
 	}
 }
 
@@ -112,8 +138,31 @@ func parseWithLookahead(lts lookaheadTokenStream) error {
 
 	// factor         → unary ( ( "/" | "*" ) unary )* ;
 	factor = func() (ASTnode, error) {
-		una, err := unary()
-		return una, err
+		left, err := unary()
+		if err != nil {
+			return left, err
+		}
+
+	done:
+		for {
+			o := lts.peek()
+			switch o.Type {
+			case token.STAR:
+				fallthrough
+			case token.SLASH:
+				o = lts.consume()
+				var right ASTnode
+				right, err = unary()
+				tmp := ASTbinary{o.Type, left, right}
+				if err != nil {
+					return tmp, err
+				}
+				left = tmp
+			default:
+				break done
+			}
+		}
+		return left, err
 	}
 
 	// unary          → ( "!" | "-" ) unary | primary ;
