@@ -27,8 +27,22 @@ func (l ASTliteral) String() string {
 	return l.Contents
 }
 
-func ParseLines(tokens chan token.Struct) error {
-	return nil
+type ASTunary struct {
+	Contents ASTnode
+	Operator token.Type
+}
+
+func (l ASTunary) String() string {
+	switch l.Operator {
+	case token.BANG:
+		str := fmt.Sprintf("(! %s)", l.Contents)
+		return str
+	case token.MINUS:
+		str := fmt.Sprintf("(- %s)", l.Contents)
+		return str
+	default:
+		return l.Contents.String()
+	}
 }
 
 type lookaheadTokenStream struct {
@@ -102,13 +116,14 @@ func parseWithLookahead(lts lookaheadTokenStream) error {
 		return una, err
 	}
 
-	// unary          → ( "!" | "-" ) unary
-	//                | primary ;
+	// unary          → ( "!" | "-" ) unary | primary ;
 	unary = func() (ASTnode, error) {
 		t := lts.peek()
-		if t.Type == token.BANG {
-			b := lts.consume()
-			fmt.Println(b.String())
+		if t.Type == token.BANG || t.Type == token.MINUS {
+			t = lts.consume()
+			prim, err := unary()
+			wrapper := ASTunary{Operator: t.Type, Contents: prim}
+			return wrapper, err
 		}
 
 		prim, err := primary()
