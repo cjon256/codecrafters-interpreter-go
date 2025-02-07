@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	"example.com/cjon/parser"
 	"example.com/cjon/token"
@@ -16,8 +17,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	command := os.Args[1]
 	var err error
+	command := os.Args[1]
 
 	switch command {
 	case "tokenize":
@@ -44,13 +45,14 @@ func main() {
 		os.Exit(0)
 	}
 
-	switch err.Error() {
-	case "argument_error":
+	errStr := err.Error()
+	switch {
+	case errStr == "argument_error":
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", command)
 		os.Exit(1)
-	case "syntax_error":
+	case errStr == "syntax_error":
 		os.Exit(65)
-	case "parse_error":
+	case strings.HasPrefix("parse_error", errStr):
 		os.Exit(56)
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown error: %s\n", command)

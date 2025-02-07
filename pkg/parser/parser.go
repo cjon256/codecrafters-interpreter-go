@@ -35,19 +35,66 @@ func parseOne() {
 }
 
 func Parse(tokens chan token.Struct) error {
+	var peek token.Struct
 	var group func() (ASTnode, error)
-	var literal func(token.Struct) (ASTnode, error)
+	var primary func(token.Struct) (ASTnode, error)
+	var expression func(token.Struct) (ASTnode, error)
+	var equality func(token.Struct) (ASTnode, error)
+	var comparison func(token.Struct) (ASTnode, error)
+	var term func(token.Struct) (ASTnode, error)
+	var factor func(token.Struct) (ASTnode, error)
+	var unary func(token.Struct) (ASTnode, error)
+
+	// expression     → equality ;
+	expression = func(t token.Struct) (ASTnode, error) {
+		expr, err := equality(t)
+		return expr, err
+	}
+
+	// equality       → comparison ( ( "!=" | "==" ) comparison )* ;
+	equality = func(t token.Struct) (ASTnode, error) {
+		comp, err := comparison(t)
+		return comp, err
+	}
+
+	// comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
+	comparison = func(t token.Struct) (ASTnode, error) {
+		trm, err := term(t)
+		return trm, err
+	}
+
+	// term           → factor ( ( "-" | "+" ) factor )* ;
+	term = func(t token.Struct) (ASTnode, error) {
+		fact, err := factor(t)
+		return fact, err
+	}
+
+	// factor         → unary ( ( "/" | "*" ) unary )* ;
+	factor = func(t token.Struct) (ASTnode, error) {
+		una, err := unary(t)
+		return una, err
+	}
+
+	// unary          → ( "!" | "-" ) unary
+	//                | primary ;
+	unary = func(t token.Struct) (ASTnode, error) {
+		prim, err := primary(t)
+		return prim, err
+	}
 
 	group = func() (ASTnode, error) {
 		g := ASTgroup{}
-		c := <-tokens
+
+		// XXX hack to let me keep peek around for now
+		peek = <-tokens
+		c := peek
 		switch c.Type {
 		case token.EOF:
 			return g, errors.New("parse_error")
 		case token.RIGHT_PAREN:
 			return g, errors.New("parse_error")
 		default:
-			node, err := literal(c)
+			node, err := primary(c)
 			if err != nil {
 				return g, err
 			}
@@ -61,18 +108,20 @@ func Parse(tokens chan token.Struct) error {
 		return g, nil
 	}
 
-	literal = func(t token.Struct) (ASTnode, error) {
+	// primary        → NUMBER | STRING | "true" | "false" | "nil"
+	//                | "(" expression ")" ;
+	primary = func(t token.Struct) (ASTnode, error) {
 		switch t.Type {
 		case token.EOF:
 			return ASTliteral{}, errors.New("EOF")
-		case token.RIGHT_PAREN:
-			return ASTliteral{}, errors.New("parse_error")
 		case token.LEFT_PAREN:
 			node, err := group()
 			if err != nil {
 				return ASTliteral{}, err
 			}
 			return node, nil
+		case token.RIGHT_PAREN:
+			return ASTliteral{}, errors.New("parse_error: unexpected ')' in input")
 		case token.STRING:
 			return ASTliteral{t.Literal}, nil
 		case token.NUMBER:
@@ -86,14 +135,13 @@ func Parse(tokens chan token.Struct) error {
 		case token.NIL:
 			return ASTliteral{t.Lexeme}, nil
 		default:
-			fmt.Print("errorrrrrr")
-			return ASTliteral{}, errors.New("parse_error")
+			return ASTliteral{}, errors.New("parse_error: upexpected character")
 		}
 	}
 
 	lastStr := ""
 	for t := range tokens {
-		node, err := literal(t)
+		node, err := expression(t)
 		if err != nil {
 			switch err.Error() {
 			case "EOF":
