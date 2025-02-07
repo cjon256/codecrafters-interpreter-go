@@ -31,86 +31,118 @@ func ParseLines(tokens chan token.Struct) error {
 	return nil
 }
 
-func parseOne() {
+type lookaheadTokenStream struct {
+	ch   chan token.Struct
+	curr *token.Struct
+}
+
+func (lts *lookaheadTokenStream) peek() *token.Struct {
+	if lts.curr == nil {
+		t := <-lts.ch
+		lts.curr = &t
+	}
+	return lts.curr
+}
+
+func (lts *lookaheadTokenStream) consume() *token.Struct {
+	r := lts.peek()
+	if lts.curr.Type != token.EOF {
+		t := <-lts.ch
+		lts.curr = &t
+	}
+	return r
 }
 
 func Parse(tokens chan token.Struct) error {
-	var peek token.Struct
+	lts := lookaheadTokenStream{ch: tokens}
+	return parseWithLookahead(lts)
+}
+
+func parseWithLookahead(lts lookaheadTokenStream) error {
 	var group func() (ASTnode, error)
-	var primary func(token.Struct) (ASTnode, error)
-	var expression func(token.Struct) (ASTnode, error)
-	var equality func(token.Struct) (ASTnode, error)
-	var comparison func(token.Struct) (ASTnode, error)
-	var term func(token.Struct) (ASTnode, error)
-	var factor func(token.Struct) (ASTnode, error)
-	var unary func(token.Struct) (ASTnode, error)
+	var primary func() (ASTnode, error)
+	var expression func() (ASTnode, error)
+	var equality func() (ASTnode, error)
+	var comparison func() (ASTnode, error)
+	var term func() (ASTnode, error)
+	var factor func() (ASTnode, error)
+	var unary func() (ASTnode, error)
 
 	// expression     → equality ;
-	expression = func(t token.Struct) (ASTnode, error) {
-		expr, err := equality(t)
+	expression = func() (ASTnode, error) {
+		expr, err := equality()
 		return expr, err
 	}
 
 	// equality       → comparison ( ( "!=" | "==" ) comparison )* ;
-	equality = func(t token.Struct) (ASTnode, error) {
-		comp, err := comparison(t)
+	equality = func() (ASTnode, error) {
+		comp, err := comparison()
 		return comp, err
 	}
 
 	// comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
-	comparison = func(t token.Struct) (ASTnode, error) {
-		trm, err := term(t)
+	comparison = func() (ASTnode, error) {
+		trm, err := term()
 		return trm, err
 	}
 
 	// term           → factor ( ( "-" | "+" ) factor )* ;
-	term = func(t token.Struct) (ASTnode, error) {
-		fact, err := factor(t)
+	term = func() (ASTnode, error) {
+		fact, err := factor()
+		n := lts.peek()
+		if n.Type == token.MINUS {
+			fmt.Println("seeing a minus sign")
+		}
 		return fact, err
 	}
 
 	// factor         → unary ( ( "/" | "*" ) unary )* ;
-	factor = func(t token.Struct) (ASTnode, error) {
-		una, err := unary(t)
+	factor = func() (ASTnode, error) {
+		una, err := unary()
 		return una, err
 	}
 
 	// unary          → ( "!" | "-" ) unary
 	//                | primary ;
-	unary = func(t token.Struct) (ASTnode, error) {
-		prim, err := primary(t)
+	unary = func() (ASTnode, error) {
+		t := lts.peek()
+		if t.Type == token.BANG {
+			b := lts.consume()
+			fmt.Println(b.String())
+		}
+
+		prim, err := primary()
 		return prim, err
 	}
 
 	group = func() (ASTnode, error) {
 		g := ASTgroup{}
 
-		// XXX hack to let me keep peek around for now
-		peek = <-tokens
-		c := peek
+		c := lts.peek()
 		switch c.Type {
 		case token.EOF:
-			return g, errors.New("parse_error")
+			return g, errors.New("parse_error: EOF detected in group")
 		case token.RIGHT_PAREN:
-			return g, errors.New("parse_error")
+			return g, errors.New("parse_error: ')' detected in group")
 		default:
-			node, err := primary(c)
+			node, err := expression()
 			if err != nil {
 				return g, err
 			}
 			g.Contents = node
 		}
 
-		close := <-tokens
+		close := lts.consume()
 		if close.Type != token.RIGHT_PAREN {
-			return g, errors.New("parse_error")
+			return g, errors.New("parse_error: expected ')' in group")
 		}
 		return g, nil
 	}
 
 	// primary        → NUMBER | STRING | "true" | "false" | "nil"
 	//                | "(" expression ")" ;
-	primary = func(t token.Struct) (ASTnode, error) {
+	primary = func() (ASTnode, error) {
+		t := lts.consume()
 		switch t.Type {
 		case token.EOF:
 			return ASTliteral{}, errors.New("EOF")
@@ -135,13 +167,14 @@ func Parse(tokens chan token.Struct) error {
 		case token.NIL:
 			return ASTliteral{t.Lexeme}, nil
 		default:
-			return ASTliteral{}, errors.New("parse_error: upexpected character")
+			return ASTliteral{}, fmt.Errorf("primary: unexpected character '%v' in input", t.Type)
 		}
 	}
 
 	lastStr := ""
-	for t := range tokens {
-		node, err := expression(t)
+	initial := true
+	for lts.peek().Type != token.EOF {
+		node, err := expression()
 		if err != nil {
 			switch err.Error() {
 			case "EOF":
@@ -151,10 +184,13 @@ func Parse(tokens chan token.Struct) error {
 				return err
 			}
 		}
-		if lastStr != "" {
-			fmt.Print(lastStr, " ")
+		if initial {
+			initial = false
+		} else {
+			fmt.Print(" ")
 		}
-		lastStr = node.String()
+
+		fmt.Print(node)
 	}
 	return nil
 }
