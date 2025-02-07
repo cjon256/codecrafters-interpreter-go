@@ -128,12 +128,31 @@ func parseWithLookahead(lts lookaheadTokenStream) error {
 
 	// term           → factor ( ( "-" | "+" ) factor )* ;
 	term = func() (ASTnode, error) {
-		fact, err := factor()
-		n := lts.peek()
-		if n.Type == token.MINUS {
-			fmt.Println("seeing a minus sign")
+		left, err := factor()
+		if err != nil {
+			return left, err
 		}
-		return fact, err
+
+	done:
+		for {
+			o := lts.peek()
+			switch o.Type {
+			case token.PLUS:
+				fallthrough
+			case token.MINUS:
+				o = lts.consume()
+				var right ASTnode
+				right, err = factor()
+				tmp := ASTbinary{o.Type, left, right}
+				if err != nil {
+					return tmp, err
+				}
+				left = tmp
+			default:
+				break done
+			}
+		}
+		return left, err
 	}
 
 	// factor         → unary ( ( "/" | "*" ) unary )* ;
