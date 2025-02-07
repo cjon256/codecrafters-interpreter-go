@@ -52,23 +52,32 @@ type ASTbinary struct {
 }
 
 func (b ASTbinary) String() string {
+	var str string
 	switch b.Operator {
 	case token.SLASH:
-		str := fmt.Sprintf("(/ %s %s)", b.Left, b.Right)
-		return str
+		str = fmt.Sprintf("(/ %s %s)", b.Left, b.Right)
 	case token.STAR:
-		str := fmt.Sprintf("(* %s %s)", b.Left, b.Right)
-		return str
+		str = fmt.Sprintf("(* %s %s)", b.Left, b.Right)
 	case token.PLUS:
-		str := fmt.Sprintf("(+ %s %s)", b.Left, b.Right)
-		return str
+		str = fmt.Sprintf("(+ %s %s)", b.Left, b.Right)
 	case token.MINUS:
-		str := fmt.Sprintf("(- %s %s)", b.Left, b.Right)
-		return str
+		str = fmt.Sprintf("(- %s %s)", b.Left, b.Right)
+	case token.BANG_EQUAL:
+		str = fmt.Sprintf("(!= %s %s)", b.Left, b.Right)
+	case token.EQUAL_EQUAL:
+		str = fmt.Sprintf("(== %s %s)", b.Left, b.Right)
+	case token.GREATER:
+		str = fmt.Sprintf("(> %s %s)", b.Left, b.Right)
+	case token.GREATER_EQUAL:
+		str = fmt.Sprintf("(>= %s %s)", b.Left, b.Right)
+	case token.LESS:
+		str = fmt.Sprintf("(< %s %s)", b.Left, b.Right)
+	case token.LESS_EQUAL:
+		str = fmt.Sprintf("(<= %s %s)", b.Left, b.Right)
 	default:
-		str := fmt.Sprintf("(%s %s)", b.Left, b.Right)
-		return str
+		str = fmt.Sprintf("(?? %s %s)", b.Left, b.Right)
 	}
+	return str
 }
 
 type lookaheadTokenStream struct {
@@ -116,14 +125,66 @@ func parseWithLookahead(lts lookaheadTokenStream) error {
 
 	// equality       → comparison ( ( "!=" | "==" ) comparison )* ;
 	equality = func() (ASTnode, error) {
-		comp, err := comparison()
-		return comp, err
+		left, err := comparison()
+		if err != nil {
+			return left, err
+		}
+
+	done:
+		for {
+			o := lts.peek()
+			switch o.Type {
+			case token.BANG_EQUAL:
+				fallthrough
+			case token.EQUAL_EQUAL:
+				o = lts.consume()
+				var right ASTnode
+				right, err = comparison()
+				tmp := ASTbinary{o.Type, left, right}
+				if err != nil {
+					return tmp, err
+				}
+				left = tmp
+			default:
+				break done
+			}
+		}
+
+		return left, err
 	}
 
 	// comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
 	comparison = func() (ASTnode, error) {
-		trm, err := term()
-		return trm, err
+		left, err := term()
+		if err != nil {
+			return left, err
+		}
+
+	done:
+		for {
+			o := lts.peek()
+			switch o.Type {
+			case token.GREATER:
+				fallthrough
+			case token.GREATER_EQUAL:
+				fallthrough
+			case token.LESS:
+				fallthrough
+			case token.LESS_EQUAL:
+				o = lts.consume()
+				var right ASTnode
+				right, err = term()
+				tmp := ASTbinary{o.Type, left, right}
+				if err != nil {
+					return tmp, err
+				}
+				left = tmp
+			default:
+				break done
+			}
+		}
+
+		return left, err
 	}
 
 	// term           → factor ( ( "-" | "+" ) factor )* ;
