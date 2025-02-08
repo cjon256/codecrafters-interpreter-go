@@ -4,12 +4,18 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strings"
 
 	"example.com/cjon/parser"
 	"example.com/cjon/token"
 	"example.com/cjon/tokenizer"
 )
+
+type ArgumentError struct{}
+
+func (a ArgumentError) Error() string {
+	// not used
+	return ""
+}
 
 func main() {
 	if len(os.Args) < 3 {
@@ -45,18 +51,13 @@ func main() {
 		os.Exit(0)
 	}
 
-	errStr := err.Error()
-	switch {
-	case errStr == "argument_error":
+	switch err.(type) {
+	case ArgumentError:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", command)
 		os.Exit(1)
-	case errStr == "syntax_error":
-		os.Exit(65)
-	case strings.HasPrefix("parse_error", errStr):
-		os.Exit(56)
 	default:
-		fmt.Fprintf(os.Stderr, "Unknown error: %s\n", command)
-		os.Exit(-1)
+		fmt.Fprintf(os.Stderr, "%s\n", err)
+		os.Exit(65)
 	}
 }
 

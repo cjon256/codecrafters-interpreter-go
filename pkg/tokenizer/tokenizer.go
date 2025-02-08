@@ -42,7 +42,7 @@ func Tokenize(tokens chan token.Struct, errCh chan error, line []byte) {
 		}
 		str := string(ts)
 		qstr := "\"" + str + "\""
-		tokens <- token.Struct{token.STRING, qstr, str}
+		tokens <- token.Struct{token.STRING, qstr, str, lineNumber}
 		return nil
 	}
 
@@ -103,59 +103,59 @@ func Tokenize(tokens chan token.Struct, errCh chan error, line []byte) {
 		str := string(ts)
 		lexeme, ok := token.KEYWORDS[str]
 		if !ok {
-			tokens <- token.Struct{token.IDENTIFIER, str, "null"}
+			tokens <- token.Struct{token.IDENTIFIER, str, "null", lineNumber}
 		} else {
-			tokens <- token.Struct{lexeme, str, "null"}
+			tokens <- token.Struct{lexeme, str, "null", lineNumber}
 		}
 	}
 
 	for ; i < len(line); i++ {
 		switch line[i] {
 		case '(':
-			tokens <- token.Struct{token.LEFT_PAREN, "(", "null"}
+			tokens <- token.Struct{token.LEFT_PAREN, "(", "null", lineNumber}
 		case ')':
-			tokens <- token.Struct{token.RIGHT_PAREN, ")", "null"}
+			tokens <- token.Struct{token.RIGHT_PAREN, ")", "null", lineNumber}
 		case '{':
-			tokens <- token.Struct{token.LEFT_BRACE, "{", "null"}
+			tokens <- token.Struct{token.LEFT_BRACE, "{", "null", lineNumber}
 		case '}':
-			tokens <- token.Struct{token.RIGHT_BRACE, "}", "null"}
+			tokens <- token.Struct{token.RIGHT_BRACE, "}", "null", lineNumber}
 		case ';':
-			tokens <- token.Struct{token.SEMICOLON, ";", "null"}
+			tokens <- token.Struct{token.SEMICOLON, ";", "null", lineNumber}
 		case ',':
-			tokens <- token.Struct{token.COMMA, ",", "null"}
+			tokens <- token.Struct{token.COMMA, ",", "null", lineNumber}
 		case '+':
-			tokens <- token.Struct{token.PLUS, "+", "null"}
+			tokens <- token.Struct{token.PLUS, "+", "null", lineNumber}
 		case '-':
-			tokens <- token.Struct{token.MINUS, "-", "null"}
+			tokens <- token.Struct{token.MINUS, "-", "null", lineNumber}
 		case '*':
-			tokens <- token.Struct{token.STAR, "*", "null"}
+			tokens <- token.Struct{token.STAR, "*", "null", lineNumber}
 		case '!':
 			if i+1 < len(line) && line[i+1] == '=' {
 				i++
-				tokens <- token.Struct{token.BANG_EQUAL, "!=", "null"}
+				tokens <- token.Struct{token.BANG_EQUAL, "!=", "null", lineNumber}
 			} else {
-				tokens <- token.Struct{token.BANG, "!", "null"}
+				tokens <- token.Struct{token.BANG, "!", "null", lineNumber}
 			}
 		case '=':
 			if i+1 < len(line) && line[i+1] == '=' {
-				tokens <- token.Struct{token.EQUAL_EQUAL, "==", "null"}
+				tokens <- token.Struct{token.EQUAL_EQUAL, "==", "null", lineNumber}
 				i++
 			} else {
-				tokens <- token.Struct{token.EQUAL, "=", "null"}
+				tokens <- token.Struct{token.EQUAL, "=", "null", lineNumber}
 			}
 		case '<':
 			if i+1 < len(line) && line[i+1] == '=' {
-				tokens <- token.Struct{token.LESS_EQUAL, "<=", "null"}
+				tokens <- token.Struct{token.LESS_EQUAL, "<=", "null", lineNumber}
 				i++
 			} else {
-				tokens <- token.Struct{token.LESS, "<", "null"}
+				tokens <- token.Struct{token.LESS, "<", "null", lineNumber}
 			}
 		case '>':
 			if i+1 < len(line) && line[i+1] == '=' {
-				tokens <- token.Struct{token.GREATER_EQUAL, ">=", "null"}
+				tokens <- token.Struct{token.GREATER_EQUAL, ">=", "null", lineNumber}
 				i++
 			} else {
-				tokens <- token.Struct{token.GREATER, ">", "null"}
+				tokens <- token.Struct{token.GREATER, ">", "null", lineNumber}
 			}
 		case '/':
 			if i+1 < len(line) && line[i+1] == '/' {
@@ -168,10 +168,10 @@ func Tokenize(tokens chan token.Struct, errCh chan error, line []byte) {
 					i++
 				}
 			} else {
-				tokens <- token.Struct{token.SLASH, "/", "null"}
+				tokens <- token.Struct{token.SLASH, "/", "null", lineNumber}
 			}
 		case '.':
-			tokens <- token.Struct{token.DOT, ".", "null"}
+			tokens <- token.Struct{token.DOT, ".", "null", lineNumber}
 		case ' ':
 			// ignore
 		case '\t':
@@ -194,7 +194,7 @@ func Tokenize(tokens chan token.Struct, errCh chan error, line []byte) {
 			fmt.Fprintf(os.Stderr, "[line %d] Error: Unexpected character: %s\n", lineNumber, string(line[i]))
 		}
 	}
-	tokens <- token.Struct{token.EOF, "", "null"}
+	tokens <- token.Struct{token.EOF, "", "null", lineNumber}
 	close(tokens)
 	errCh <- err
 	close(errCh)

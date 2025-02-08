@@ -297,7 +297,7 @@ func parseWithLookahead(lts lookaheadTokenStream) error {
 			}
 			return node, nil
 		case token.RIGHT_PAREN:
-			return ASTliteral{}, errors.New("parse_error: unexpected ')' in input")
+			return ASTliteral{}, fmt.Errorf("[line %d] Error at ')': Expect expression.", t.Line)
 		case token.STRING:
 			return ASTliteral{t.Literal}, nil
 		case token.NUMBER:

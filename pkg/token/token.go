@@ -8,6 +8,7 @@ type Struct struct {
 	Type    Type
 	Lexeme  string
 	Literal string
+	Line    int
 }
 
 func (t Struct) String() string {
