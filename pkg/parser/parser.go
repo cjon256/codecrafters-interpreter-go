@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"example.com/cjon/token"
+	"example.com/cjon/interpreter-starter-go/pkg/token"
 )
 
 type ASTnode interface {

@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"example.com/cjon/token"
+	"example.com/cjon/interpreter-starter-go/pkg/token"
 )
 
 type testStruct struct {

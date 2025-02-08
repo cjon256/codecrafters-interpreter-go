@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	"example.com/cjon/parser"
-	"example.com/cjon/token"
-	"example.com/cjon/tokenizer"
+	"example.com/cjon/interpreter-starter-go/pkg/parser"
+	"example.com/cjon/interpreter-starter-go/pkg/token"
+	"example.com/cjon/interpreter-starter-go/pkg/tokenizer"
 )
 
 type ArgumentError struct{}

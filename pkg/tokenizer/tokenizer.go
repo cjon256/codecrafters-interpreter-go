@@ -7,7 +7,7 @@ import (
 	"strings"
 	"unicode"
 
-	"example.com/cjon/token"
+	"example.com/cjon/interpreter-starter-go/pkg/token"
 )
 
 func Tokenize(tokens chan token.Struct, errCh chan error, line []byte) {
