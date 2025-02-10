@@ -43,8 +43,15 @@ func main() {
 		go tokenizer.Tokenize(tokenCh, serrCh, lines)
 		go parser.Parse(tokenCh, parserCh, perrCh)
 		err = printAST(parserCh, serrCh, perrCh)
-	case "execute":
-		fmt.Println("false")
+	case "evaluate":
+		serrCh := make(chan error)
+		perrCh := make(chan error)
+		tokenCh := make(chan token.Struct)
+		parserCh := make(chan parser.ASTnode)
+		lines := getLines(os.Args[2])
+		go tokenizer.Tokenize(tokenCh, serrCh, lines)
+		go parser.Parse(tokenCh, parserCh, perrCh)
+		err = executeAST(parserCh, serrCh, perrCh)
 	default:
 		err = errors.New("argument_error")
 	}
@@ -88,6 +95,36 @@ func printAST(astNodes chan parser.ASTnode, serrCh chan error, perrCh chan error
 			fmt.Print(" ")
 		}
 		fmt.Println(node)
+	case err := <-serrCh:
+		if err != nil {
+			return err
+		}
+	case err := <-perrCh:
+		if err != nil {
+			return err
+		}
+	}
+	err := <-perrCh
+	if err != nil {
+		return err
+	}
+	err = <-serrCh
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func executeAST(astNodes chan parser.ASTnode, serrCh chan error, perrCh chan error) error {
+	initial := true
+	select {
+	case node := <-astNodes:
+		if initial {
+			initial = false
+		} else {
+			fmt.Print(" ")
+		}
+		fmt.Println(node.Execute())
 	case err := <-serrCh:
 		if err != nil {
 			return err

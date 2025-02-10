@@ -9,6 +9,7 @@ import (
 
 type ASTnode interface {
 	fmt.Stringer
+	Execute() string
 }
 
 type ASTgroup struct {
@@ -19,11 +20,19 @@ func (g ASTgroup) String() string {
 	return fmt.Sprintf("(group %s)", g.Contents)
 }
 
+func (g ASTgroup) Execute() string {
+	return ""
+}
+
 type ASTliteral struct {
 	Contents string
 }
 
 func (l ASTliteral) String() string {
+	return l.Contents
+}
+
+func (l ASTliteral) Execute() string {
 	return l.Contents
 }
 
@@ -43,6 +52,10 @@ func (l ASTunary) String() string {
 	default:
 		return l.Contents.String()
 	}
+}
+
+func (l ASTunary) Execute() string {
+	return ""
 }
 
 type ASTbinary struct {
@@ -78,6 +91,10 @@ func (b ASTbinary) String() string {
 		str = fmt.Sprintf("(?? %s %s)", b.Left, b.Right)
 	}
 	return str
+}
+
+func (b ASTbinary) Execute() string {
+	return ""
 }
 
 type lookaheadTokenStream struct {
@@ -287,7 +304,7 @@ func Parse(tokens chan token.Struct, astNodes chan ASTnode, errCh chan error) {
 		t := lts.consume()
 		switch t.Type {
 		case token.EOF:
-			return t, errors.New("parse_error: EOF detected, expected literal")
+			return ASTliteral{}, errors.New("parse_error: EOF detected, expected literal")
 		case token.LEFT_PAREN:
 			node, err := group()
 			if err != nil {
