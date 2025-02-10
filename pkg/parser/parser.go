@@ -102,12 +102,7 @@ func (lts *lookaheadTokenStream) consume() *token.Struct {
 	return r
 }
 
-func Parse(tokens chan token.Struct) error {
-	lts := lookaheadTokenStream{ch: tokens}
-	return parseWithLookahead(lts)
-}
-
-func parseWithLookahead(lts lookaheadTokenStream) error {
+func Parse(tokens chan token.Struct, astNodes chan ASTnode, errCh chan error) {
 	var group func() (ASTnode, error)
 	var primary func() (ASTnode, error)
 	var expression func() (ASTnode, error)
@@ -116,6 +111,9 @@ func parseWithLookahead(lts lookaheadTokenStream) error {
 	var term func() (ASTnode, error)
 	var factor func() (ASTnode, error)
 	var unary func() (ASTnode, error)
+	lts := lookaheadTokenStream{ch: tokens}
+	defer close(astNodes)
+	defer close(errCh)
 
 	// expression     → equality ;
 	expression = func() (ASTnode, error) {
@@ -289,7 +287,7 @@ func parseWithLookahead(lts lookaheadTokenStream) error {
 		t := lts.consume()
 		switch t.Type {
 		case token.EOF:
-			return ASTliteral{}, errors.New("EOF")
+			return t, errors.New("parse_error: EOF detected, expected literal")
 		case token.LEFT_PAREN:
 			node, err := group()
 			if err != nil {
@@ -315,26 +313,12 @@ func parseWithLookahead(lts lookaheadTokenStream) error {
 		}
 	}
 
-	lastStr := ""
-	initial := true
 	for lts.peek().Type != token.EOF {
 		node, err := expression()
 		if err != nil {
-			switch err.Error() {
-			case "EOF":
-				fmt.Print(lastStr)
-				return nil
-			default:
-				return err
-			}
+			errCh <- err
+			return
 		}
-		if initial {
-			initial = false
-		} else {
-			fmt.Print(" ")
-		}
-
-		fmt.Print(node)
+		astNodes <- node
 	}
-	return nil
 }
