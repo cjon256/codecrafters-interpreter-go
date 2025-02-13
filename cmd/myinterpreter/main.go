@@ -36,20 +36,22 @@ func main() {
 		err = <-errCh
 	case "parse":
 		serrCh := make(chan error)
+		perrCh := make(chan error)
 		tokenCh := make(chan token.Struct)
-		parserCh := make(chan parser.ASTnodeWithError)
+		parserCh := make(chan parser.ASTnode)
 		lines := getLines(os.Args[2])
 		go tokenizer.Tokenize(tokenCh, serrCh, lines)
-		go parser.Parse(tokenCh, parserCh)
-		err = printAST(parserCh, serrCh)
+		go parser.Parse(tokenCh, parserCh, perrCh)
+		err = printAST(parserCh, serrCh, perrCh)
 	case "evaluate":
 		serrCh := make(chan error)
+		perrCh := make(chan error)
 		tokenCh := make(chan token.Struct)
-		parserCh := make(chan parser.ASTnodeWithError)
+		parserCh := make(chan parser.ASTnode)
 		lines := getLines(os.Args[2])
 		go tokenizer.Tokenize(tokenCh, serrCh, lines)
-		go parser.Parse(tokenCh, parserCh)
-		err = executeAST(parserCh, serrCh)
+		go parser.Parse(tokenCh, parserCh, perrCh)
+		err = executeAST(parserCh, serrCh, perrCh)
 	default:
 		err = errors.New("argument_error")
 	}
@@ -83,53 +85,51 @@ func printTokens(tokens chan token.Struct) {
 	}
 }
 
-func printAST(astNodes chan parser.ASTnodeWithError, serrCh chan error) error {
+func printAST(astNodes chan parser.ASTnode, serrCh chan error, perrCh chan error) error {
 	initial := true
-
-loop:
-	for {
-		select {
-		case nodeWithErr := <-astNodes:
-			if initial {
-				initial = false
-			} else {
-				fmt.Print(" ")
-			}
-			if nodeWithErr.Node == nil {
-				return nodeWithErr.Err
-			}
-			fmt.Println(nodeWithErr.Node)
-		default:
-			// no input
+	select {
+	case node := <-astNodes:
+		if initial {
+			initial = false
+		} else {
+			fmt.Print(" ")
+		}
+		fmt.Println(node)
+	case err := <-serrCh:
+		if err != nil {
+			return err
+		}
+	case err := <-perrCh:
+		if err != nil {
+			return err
 		}
 	}
-	// case err := <-serrCh:
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// case err := <-perrCh:
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// }
-	err := <-serrCh
+	err := <-perrCh
+	if err != nil {
+		return err
+	}
+	err = <-serrCh
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func executeAST(astNodes chan parser.ASTnodeWithError, serrCh chan error) error {
+func executeAST(astNodes chan parser.ASTnode, serrCh chan error, perrCh chan error) error {
 	initial := true
 	select {
-	case nodeWithErr := <-astNodes:
+	case node := <-astNodes:
 		if initial {
 			initial = false
 		} else {
 			fmt.Print(" ")
 		}
-		fmt.Println(nodeWithErr.Node.Evaluate())
+		fmt.Println(node.Execute())
 	case err := <-serrCh:
+		if err != nil {
+			return err
+		}
+	case err := <-perrCh:
 		if err != nil {
 			return err
 		}
