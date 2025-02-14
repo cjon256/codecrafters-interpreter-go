@@ -10,7 +10,7 @@ import (
 	"example.com/cjon/interpreter-starter-go/pkg/token"
 )
 
-func Tokenize(tokens chan token.Struct, errCh chan error, line []byte) {
+func Tokenize(tokens chan token.Struct, line []byte) {
 	var err error = nil
 	i := 0
 	lineNumber := 1
@@ -193,9 +193,13 @@ func Tokenize(tokens chan token.Struct, errCh chan error, line []byte) {
 			err = errors.New("syntax_error")
 			fmt.Fprintf(os.Stderr, "[line %d] Error: Unexpected character: %s\n", lineNumber, string(line[i]))
 		}
+		if err != nil {
+			break
+		}
+	}
+	if err != nil {
+		tokens <- token.Struct{token.ERROR, "", err.Error(), lineNumber}
 	}
 	tokens <- token.Struct{token.EOF, "", "null", lineNumber}
 	close(tokens)
-	errCh <- err
-	close(errCh)
 }

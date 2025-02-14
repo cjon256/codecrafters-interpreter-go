@@ -28,30 +28,26 @@ func main() {
 
 	switch command {
 	case "tokenize":
+		tokenCh := make(chan token.Struct)
+		lines := getLines(os.Args[2])
+		go tokenizer.Tokenize(tokenCh, lines)
+		err = printTokens(tokenCh)
+	case "parse":
+		perrCh := make(chan error)
+		tokenCh := make(chan token.Struct)
+		parserCh := make(chan parser.ASTnode)
+		lines := getLines(os.Args[2])
+		go tokenizer.Tokenize(tokenCh, lines)
+		go parser.Parse(tokenCh, parserCh, perrCh)
+		err = printAST(parserCh, perrCh)
+	case "evaluate":
 		errCh := make(chan error)
 		tokenCh := make(chan token.Struct)
-		lines := getLines(os.Args[2])
-		go tokenizer.Tokenize(tokenCh, errCh, lines)
-		printTokens(tokenCh)
-		err = <-errCh
-	case "parse":
-		serrCh := make(chan error)
-		perrCh := make(chan error)
-		tokenCh := make(chan token.Struct)
 		parserCh := make(chan parser.ASTnode)
 		lines := getLines(os.Args[2])
-		go tokenizer.Tokenize(tokenCh, serrCh, lines)
-		go parser.Parse(tokenCh, parserCh, perrCh)
-		err = printAST(parserCh, serrCh, perrCh)
-	case "evaluate":
-		serrCh := make(chan error)
-		perrCh := make(chan error)
-		tokenCh := make(chan token.Struct)
-		parserCh := make(chan parser.ASTnode)
-		lines := getLines(os.Args[2])
-		go tokenizer.Tokenize(tokenCh, serrCh, lines)
-		go parser.Parse(tokenCh, parserCh, perrCh)
-		err = executeAST(parserCh, serrCh, perrCh)
+		go tokenizer.Tokenize(tokenCh, lines)
+		go parser.Parse(tokenCh, parserCh, errCh)
+		err = evaluateAST(parserCh, errCh)
 	default:
 		err = errors.New("argument_error")
 	}
@@ -79,66 +75,44 @@ func getLines(filename string) []byte {
 	return lines
 }
 
-func printTokens(tokens chan token.Struct) {
+func printTokens(tokens chan token.Struct) error {
 	for t := range tokens {
+		if t.Type == token.ERROR {
+			return errors.New(t.Literal)
+		}
 		fmt.Println(t)
 	}
+	return nil
 }
 
-func printAST(astNodes chan parser.ASTnode, serrCh chan error, perrCh chan error) error {
+func printAST(astNodes chan parser.ASTnode, errCh chan error) error {
 	initial := true
-	select {
-	case node := <-astNodes:
+	for node := range astNodes {
 		if initial {
 			initial = false
 		} else {
 			fmt.Print(" ")
 		}
-		fmt.Println(node)
-	case err := <-serrCh:
-		if err != nil {
-			return err
-		}
-	case err := <-perrCh:
-		if err != nil {
-			return err
-		}
+		fmt.Print(node.String())
 	}
-	err := <-perrCh
-	if err != nil {
-		return err
-	}
-	err = <-serrCh
+	err := <-errCh
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func executeAST(astNodes chan parser.ASTnode, serrCh chan error, perrCh chan error) error {
+func evaluateAST(astNodes chan parser.ASTnode, errCh chan error) error {
 	initial := true
-	select {
-	case node := <-astNodes:
+	for node := range astNodes {
 		if initial {
 			initial = false
 		} else {
 			fmt.Print(" ")
 		}
 		fmt.Println(node.Execute())
-	case err := <-serrCh:
-		if err != nil {
-			return err
-		}
-	case err := <-perrCh:
-		if err != nil {
-			return err
-		}
 	}
-	err := <-perrCh
-	if err != nil {
-		return err
-	}
-	err = <-serrCh
+	err := <-errCh
 	if err != nil {
 		return err
 	}

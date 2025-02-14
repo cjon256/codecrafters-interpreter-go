@@ -129,7 +129,6 @@ func Parse(tokens chan token.Struct, astNodes chan ASTnode, errCh chan error) {
 	var factor func() (ASTnode, error)
 	var unary func() (ASTnode, error)
 	lts := lookaheadTokenStream{ch: tokens}
-	defer close(astNodes)
 	defer close(errCh)
 
 	// expression     → equality ;
@@ -334,8 +333,10 @@ func Parse(tokens chan token.Struct, astNodes chan ASTnode, errCh chan error) {
 		node, err := expression()
 		if err != nil {
 			errCh <- err
+			close(astNodes)
 			return
 		}
 		astNodes <- node
 	}
+	close(astNodes)
 }
