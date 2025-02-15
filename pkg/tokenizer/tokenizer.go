@@ -194,11 +194,11 @@ func Tokenize(tokens chan token.Struct, line []byte) {
 			fmt.Fprintf(os.Stderr, "[line %d] Error: Unexpected character: %s\n", lineNumber, string(line[i]))
 		}
 		if err != nil {
-			break
+			tokens <- token.Struct{token.ERROR, "", err.Error(), lineNumber}
 		}
-	}
-	if err != nil {
-		tokens <- token.Struct{token.ERROR, "", err.Error(), lineNumber}
+		// if err != nil {
+		// 	break
+		// }
 	}
 	tokens <- token.Struct{token.EOF, "", "null", lineNumber}
 	close(tokens)

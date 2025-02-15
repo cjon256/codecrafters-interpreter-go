@@ -332,8 +332,8 @@ func Parse(tokens chan token.Struct, astNodes chan ASTnode, errCh chan error) {
 	for lts.peek().Type != token.EOF {
 		node, err := expression()
 		if err != nil {
-			errCh <- err
 			close(astNodes)
+			errCh <- err
 			return
 		}
 		astNodes <- node

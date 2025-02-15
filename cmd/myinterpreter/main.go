@@ -61,7 +61,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", command)
 		os.Exit(1)
 	default:
-		fmt.Fprintf(os.Stderr, "%s\n", err)
+		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
 		os.Exit(65)
 	}
 }
@@ -76,13 +76,15 @@ func getLines(filename string) []byte {
 }
 
 func printTokens(tokens chan token.Struct) error {
+	var err error = nil
 	for t := range tokens {
 		if t.Type == token.ERROR {
-			return errors.New(t.Literal)
+			err = errors.New(t.Literal)
+			continue
 		}
 		fmt.Println(t)
 	}
-	return nil
+	return err
 }
 
 func printAST(astNodes chan parser.ASTnode, errCh chan error) error {
