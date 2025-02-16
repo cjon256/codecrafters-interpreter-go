@@ -14,11 +14,11 @@ func Tokenize(tokens chan token.Struct, line []byte) {
 	var err error = nil
 	i := 0
 	lineNumber := 1
-	peek := func() (bool, byte) {
+	peek := func() (byte, bool) {
 		if i+1 == len(line) {
-			return false, ' '
+			return ' ', false
 		}
-		return true, line[i+1]
+		return line[i+1], true
 	}
 
 	tokenizeString := func() error {
@@ -52,7 +52,7 @@ func Tokenize(tokens chan token.Struct, line []byte) {
 		for ; i < len(line); i++ {
 			// fmt.Fprintf(os.Stderr, "num (%d): %v\n", i, line[i])
 			ts = append(ts, line[i])
-			ok, nextByte := peek()
+			nextByte, ok := peek()
 			if !ok {
 				// at end of line
 				break
@@ -78,7 +78,8 @@ func Tokenize(tokens chan token.Struct, line []byte) {
 				nstr = nstr + "0"
 			}
 		}
-		// fmt.Fprintf(os.Stderr, "num (%v): %s,%s ... %s\n", dotSeen, str, nstr, line[i:])
+		// restLn := line[i:]
+		// fmt.Fprintf(os.Stderr, "num (%v): %s,%s ... %s\n", dotSeen, str, nstr, restLn)
 		tokens <- token.Struct{Type: token.NUMBER, Lexeme: str, Literal: nstr}
 	}
 
@@ -91,7 +92,7 @@ func Tokenize(tokens chan token.Struct, line []byte) {
 		ts := []byte{}
 		for ; i < len(line); i++ {
 			ts = append(ts, line[i])
-			ok, nextByte := peek()
+			nextByte, ok := peek()
 			if !ok {
 				// at end of line
 				break
@@ -190,8 +191,11 @@ func Tokenize(tokens chan token.Struct, line []byte) {
 				tokenizeIdentifier()
 				continue
 			}
-			err = errors.New("syntax_error")
-			fmt.Fprintf(os.Stderr, "[line %d] Error: Unexpected character: %s\n", lineNumber, string(line[i]))
+			errChar := string(line[i])
+			errLinePrefix := fmt.Sprintf("[line %d] Error:", lineNumber)
+			errStr := fmt.Sprintf("%s Unexpected character: %s\n", errLinePrefix, errChar)
+			err = errors.New(errStr)
+			)
 		}
 		if err != nil {
 			tokens <- token.Struct{token.ERROR, "", err.Error(), lineNumber}
