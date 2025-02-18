@@ -195,7 +195,6 @@ func Tokenize(tokens chan token.Struct, line []byte) {
 			errLinePrefix := fmt.Sprintf("[line %d] Error:", lineNumber)
 			errStr := fmt.Sprintf("%s Unexpected character: %s\n", errLinePrefix, errChar)
 			err = errors.New(errStr)
-			)
 		}
 		if err != nil {
 			tokens <- token.Struct{token.ERROR, "", err.Error(), lineNumber}
