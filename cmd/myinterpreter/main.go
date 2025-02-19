@@ -75,7 +75,7 @@ func getLines(filename string) []byte {
 	return lines
 }
 
-func printTokens(tokens chan token.Struct) error {
+func printTokens(tokens <-chan token.Struct) error {
 	var err error = nil
 	for t := range tokens {
 		if t.Type == token.ERROR {
@@ -87,7 +87,7 @@ func printTokens(tokens chan token.Struct) error {
 	return err
 }
 
-func printAST(astNodes chan parser.ASTnode, errCh chan error) error {
+func printAST(astNodes <-chan parser.ASTnode, errCh <-chan error) error {
 	initial := true
 	for node := range astNodes {
 		if initial {
@@ -104,7 +104,7 @@ func printAST(astNodes chan parser.ASTnode, errCh chan error) error {
 	return nil
 }
 
-func evaluateAST(astNodes chan parser.ASTnode, errCh chan error) error {
+func evaluateAST(astNodes <-chan parser.ASTnode, errCh <-chan error) error {
 	initial := true
 	for node := range astNodes {
 		if initial {

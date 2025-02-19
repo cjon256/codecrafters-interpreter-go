@@ -98,7 +98,7 @@ func (b ASTbinary) Execute() string {
 }
 
 type lookaheadTokenStream struct {
-	ch   chan token.Struct
+	ch   <-chan token.Struct
 	curr *token.Struct
 }
 
@@ -119,7 +119,7 @@ func (lts *lookaheadTokenStream) consume() *token.Struct {
 	return r
 }
 
-func Parse(tokens chan token.Struct, astNodes chan ASTnode, errCh chan error) {
+func Parse(tokens <-chan token.Struct, astNodes chan<- ASTnode, errCh chan<- error) {
 	var group func() (ASTnode, error)
 	var primary func() (ASTnode, error)
 	var expression func() (ASTnode, error)

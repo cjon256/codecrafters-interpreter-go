@@ -10,7 +10,7 @@ import (
 	"example.com/cjon/interpreter-starter-go/pkg/token"
 )
 
-func Tokenize(tokens chan token.Struct, line []byte) {
+func Tokenize(tokens chan<- token.Struct, line []byte) {
 	var err error = nil
 	i := 0
 	lineNumber := 1
