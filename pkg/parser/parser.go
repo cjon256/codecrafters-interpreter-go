@@ -9,7 +9,19 @@ import (
 
 type ASTnode interface {
 	fmt.Stringer
-	Execute() string
+	Evaluate() string
+}
+
+type ASTerror struct {
+	err error
+}
+
+func (e ASTerror) String() string {
+	return e.err.Error()
+}
+
+func (e ASTerror) Evaluate() string {
+	return e.err.Error()
 }
 
 type ASTgroup struct {
@@ -20,7 +32,7 @@ func (g ASTgroup) String() string {
 	return fmt.Sprintf("(group %s)", g.Contents)
 }
 
-func (g ASTgroup) Execute() string {
+func (g ASTgroup) Evaluate() string {
 	return ""
 }
 
@@ -32,7 +44,7 @@ func (l ASTliteral) String() string {
 	return l.Contents
 }
 
-func (l ASTliteral) Execute() string {
+func (l ASTliteral) Evaluate() string {
 	return l.Contents
 }
 
@@ -54,7 +66,7 @@ func (l ASTunary) String() string {
 	}
 }
 
-func (l ASTunary) Execute() string {
+func (l ASTunary) Evaluate() string {
 	return ""
 }
 
@@ -93,7 +105,7 @@ func (b ASTbinary) String() string {
 	return str
 }
 
-func (b ASTbinary) Execute() string {
+func (b ASTbinary) Evaluate() string {
 	return ""
 }
 
@@ -119,7 +131,7 @@ func (lts *lookaheadTokenStream) consume() *token.Struct {
 	return r
 }
 
-func Parse(tokens <-chan token.Struct, astNodes chan<- ASTnode, errCh chan<- error) {
+func Parse(tokens <-chan token.Struct, astNodes chan<- ASTnode) {
 	var group func() (ASTnode, error)
 	var primary func() (ASTnode, error)
 	var expression func() (ASTnode, error)
@@ -129,7 +141,6 @@ func Parse(tokens <-chan token.Struct, astNodes chan<- ASTnode, errCh chan<- err
 	var factor func() (ASTnode, error)
 	var unary func() (ASTnode, error)
 	lts := lookaheadTokenStream{ch: tokens}
-	defer close(errCh)
 
 	// expression     → equality ;
 	expression = func() (ASTnode, error) {
@@ -302,8 +313,11 @@ func Parse(tokens <-chan token.Struct, astNodes chan<- ASTnode, errCh chan<- err
 	primary = func() (ASTnode, error) {
 		t := lts.consume()
 		switch t.Type {
+
 		case token.EOF:
 			return ASTliteral{}, errors.New("parse_error: EOF detected, expected literal")
+		case token.ERROR:
+			return ASTliteral{}, errors.New(t.Lexeme)
 		case token.LEFT_PAREN:
 			node, err := group()
 			if err != nil {
@@ -332,9 +346,7 @@ func Parse(tokens <-chan token.Struct, astNodes chan<- ASTnode, errCh chan<- err
 	for lts.peek().Type != token.EOF {
 		node, err := expression()
 		if err != nil {
-			close(astNodes)
-			errCh <- err
-			return
+			node = ASTerror{err}
 		}
 		astNodes <- node
 	}
