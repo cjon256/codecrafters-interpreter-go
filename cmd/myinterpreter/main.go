@@ -75,8 +75,8 @@ func printTokens(tokens <-chan token.Struct) error {
 	var err error
 	for t := range tokens {
 		if t.Type == token.ERROR {
-			err = errors.New(t.Literal)
 			fmt.Fprint(os.Stderr, t.Literal)
+			err = errors.New(t.Literal)
 		} else {
 			fmt.Println(t)
 		}
@@ -88,7 +88,7 @@ func printAST(astNodes <-chan parser.ASTnode) error {
 	var err error
 	initial := true
 	for node := range astNodes {
-		_, ok := node.(parser.ASTerror)
+		_, ok := node.(parser.ASTerror) // so ugly
 		if ok {
 			fmt.Fprintln(os.Stderr, node.String())
 			err = errors.New(node.String())
